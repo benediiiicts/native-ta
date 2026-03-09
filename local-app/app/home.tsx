@@ -3,7 +3,7 @@ import { Button } from "react-native";
 import Map from '../components/Map';
 import { useState } from "react";
 
-function Index() {
+function Home() {
     let [tagMode, setTagMode] = useState(false)
 
     return (
@@ -14,4 +14,5 @@ function Index() {
     );
 }
 
-export default Index
+
+export default Home;

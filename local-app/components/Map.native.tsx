@@ -1,50 +1,134 @@
-import { View, StyleSheet } from "react-native";
-import MapView, { UrlTile, type Region } from "react-native-maps";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
+import MapView, { Polyline, UrlTile, type Region } from "react-native-maps";
 
 let API_KEY = "apENJ0nZLlOgrNouOtre";
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function Map(){
-  let onRegionChange;
+async function fetchOverpass(s: number, w: number, n: number, e: number) {
+    console.log(s, w, n, e)
+    let query = `
+        [out:json][timeout:30];
+        way["highway"](${s}, ${w}, ${n}, ${e});
+        out geom;
+    `;
+    let url_overpass = `https://maps.mail.ru/osm/tools/overpass/api/interpreter?data=${encodeURIComponent(query)}`;
 
-  return(
-      <View style={styles.wrapper}>
-          <MapView style={styles.map}>
-              <UrlTile
-                urlTemplate={map_path}
-                zIndex={1}
-              />
-          </MapView>
-      </View>
-  )
+    try {
+        let response = await fetch(url_overpass);
+        if (!response.ok) return []; 
+        let data = await response.json();
+        return data.elements || [];
+    } catch (error) {
+        console.error("Failed to fetch from Overpass:", error);
+        return [];
+    }
 }
 
-async function fetchOverpass(s: number, w: number, n: number, e: number){
-  let query = `
-    [out:json][timeout:25];
-    way["highway"](${s}, ${w}, ${n}, ${e});
-    out geom;
-  `;
-  let url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-}
+function Map({ active }: {active: boolean}) {
+    let [road, setRoad] = useState<any[]>([]);
+    let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    let mapRef = useRef<MapView>(null)
 
-//untuk fetch koordinat (S, W, E, N)
-async function RegionTrack(region: { latitude: number; latitudeDelta: number; longitude: number; longitudeDelta: number}){
-  let north = region.latitude + (region.latitudeDelta / 2);
-  let south = region.latitude - (region.latitudeDelta / 2);
-  let west = region.longitude + (region.longitudeDelta / 2);
-  let east = region.longitude - (region.longitudeDelta / 2);
+    useEffect(()=>{
+        if(!active){
+            setRoad([])
+            if(timeoutRef.current){
+                clearTimeout(timeoutRef.current)
+            }
+        }
+    }, [active])
 
+    function handleRegionChange(region: Region) {
+        if(active){
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+
+            timeoutRef.current = setTimeout(async () => {
+                if (region.longitudeDelta > 0.03) {
+                    setRoad([]);
+                    return;
+                }
+
+                let north = region.latitude + (region.latitudeDelta / 2);
+                let south = region.latitude - (region.latitudeDelta / 2);
+                let west = region.longitude - (region.longitudeDelta / 2);
+                let east = region.longitude + (region.longitudeDelta / 2);
+
+                let roadData = await fetchOverpass(south, west, north, east);
+                
+                setRoad(roadData);
+            }, 1000);
+        }
+        else{
+            setRoad([])
+        }
+    };
+    
+    useEffect(()=>{
+        if(active && mapRef.current){
+            mapRef.current.animateToRegion({
+                    latitude: -6.9175,
+                    longitude: 107.6191,
+                    latitudeDelta: 0.002,
+                    longitudeDelta: 0.002,
+            }, 1000)
+        }
+    }, [active])
+
+    return (
+        <View style={styles.wrapper}>
+            <MapView 
+                style={styles.map}
+                onRegionChangeComplete={handleRegionChange}
+                region={{
+                    latitude: -6.9175,
+                    longitude: 107.6191,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
+                }}
+                ref={mapRef}
+                >
+                <UrlTile
+                    urlTemplate={map_path}
+                    zIndex={1}
+                />
+                
+                {road.map((way) => {
+                    if (!way.geometry) return null;
+
+                    let coordinates = way.geometry.map((pos: any) => ({
+                        latitude: pos.lat,
+                        longitude: pos.lon
+                    }));
+
+                    return (
+                        <Polyline
+                            key={way.id}
+                            coordinates={coordinates}
+                            strokeColor="rgba(0, 100, 255, 0.6)"
+                            strokeWidth={5}
+                            zIndex={2}
+                            tappable={true} 
+                            onPress={(e) => {
+                                if (e.nativeEvent.coordinate) {
+                                    const clickedLat = e.nativeEvent.coordinate.latitude;
+                                    const clickedLng = e.nativeEvent.coordinate.longitude;
+                                    Alert.alert(`ID: ${way.id}\nKoordinat:\nLat:${clickedLat.toFixed(5)}\nLong:${clickedLng.toFixed(5)}`)
+                                }
+                            }}
+                        />
+                    );
+                })}
+            </MapView>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
+    wrapper: { flex: 1 },
+    map: { ...StyleSheet.absoluteFillObject },
 });
 
 export default Map;

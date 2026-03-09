@@ -5,8 +5,13 @@ function Login(){
     return (
         <div>
             <p>Login</p>
-            <input type="text" />
-            <input type="text" />
+            <div>
+                <label htmlFor="email">Email</label><br />
+                <input type="text" name="email"/><br />
+                <label htmlFor="password">Password</label><br />
+                <input type="text" name="password"/>
+            </div>
+            <a href="register">Don't have an account? Register</a>
         </div>
     )
 }
