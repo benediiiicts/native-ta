@@ -1,8 +1,9 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import ENV from '../env'
 
-let API_KEY = "apENJ0nZLlOgrNouOtre";
+let API_KEY = ENV.API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
 function MapLoader({ active }: { active: boolean }){
@@ -12,7 +13,6 @@ function MapLoader({ active }: { active: boolean }){
         if(!active){
             setRoad([])
         }
-
     }, [active])
 
     return (

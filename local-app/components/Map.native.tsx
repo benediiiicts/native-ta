@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Polyline, UrlTile, type Region } from "react-native-maps";
+import ENV from '../env'
 
-let API_KEY = "apENJ0nZLlOgrNouOtre";
+let API_KEY = ENV;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
 async function fetchOverpass(s: number, w: number, n: number, e: number) {
