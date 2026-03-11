@@ -1,7 +1,7 @@
-import { View } from "react-native";
-import { Button } from "react-native";
+import { View, Button} from "react-native";
 import Map from '../components/Map';
 import { useState } from "react";
+import Navbar from '../components/Navbar';
 
 function Home() {
     let [tagMode, setTagMode] = useState(false)
@@ -9,7 +9,13 @@ function Home() {
     return (
         <View style={{ flex: 1 }}>
             <Map active={tagMode}/>
-            <Button title="Press me" onPress={() => setTagMode(!tagMode)} />
+            <Navbar />
+            <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
+                <Button 
+                    title={tagMode ? "Cancel" : "Add tag"} 
+                    onPress={() => setTagMode(!tagMode)} 
+                />
+            </View>
         </View>
     );
 }
