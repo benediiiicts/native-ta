@@ -46,8 +46,8 @@ function MapLoader({ active }: { active: boolean }){
                         }}
                         eventHandlers={{
                             click: (e) => {
-                                const clickedLat = e.latlng.lat;
-                                const clickedLng = e.latlng.lng;
+                                let clickedLat = e.latlng.lat;
+                                let clickedLng = e.latlng.lng;
                                 alert(`ID: ${way.id}\nKoordinat:\nLat:${clickedLat.toFixed(5)}\nLong:${clickedLng.toFixed(5)}`);
                             }
                         }}
