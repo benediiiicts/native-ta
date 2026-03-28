@@ -151,8 +151,8 @@ async function createTagVersion(_tagRoadId, _userId, _conditionStatus, _descript
     }
 }
 
-async function getTagVersion(){
-
+async function getTagVersion(_tagVersionId){
+    return await tagVersions.findByPk(_tagVersionId)
 }
 
 async function deleteTagVersion(){
@@ -161,4 +161,15 @@ async function deleteTagVersion(){
 
 async function updateTagVersion(){
 
+}
+
+export {
+    createTagRoad, 
+    getTagRoad,
+    deleteTagRoad,
+    updateTagRoad,
+    createTagVersion, 
+    getTagVersion,
+    deleteTagVersion,
+    updateTagVersion
 }

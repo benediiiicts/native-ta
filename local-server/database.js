@@ -1,5 +1,5 @@
 import { Sequelize, DataTypes } from "sequelize";
-import ENV from './env'
+import 'dotenv/config';
 
 //database.js hanya untuk koneksi dengan db
 
@@ -7,8 +7,8 @@ const sequelize = new Sequelize({
     dialect: 'postgres',
     database: 'app-ta',
     host: 'localhost',
-    user: ENV.DATABASE_USER,
-    password: ENV.DATABASE_PASSWORD,
+    user: process.env.DB_HOST,
+    password: process.env.DB_PASSWORD,
     port: 5432
 })
 
