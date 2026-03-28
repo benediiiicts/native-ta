@@ -1,7 +1,5 @@
 import { Sequelize, DataTypes } from "sequelize";
 import ENV from './env'
-import {user} from "./Models/UserModel"
-import {tagRoads, tagVersions} from "./Models/TagModel"
 
 //database.js hanya untuk koneksi dengan db
 
