@@ -1,5 +1,7 @@
+import 'dotenv/config';
 import {user} from "./Models/UserModel"
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 async function hashPassword(_password){
     const saltRounds = await bcrypt.genSalt(10)
@@ -10,6 +12,19 @@ async function hashPassword(_password){
 async function comparePassword(_hash, _password){
     let compare = await bcrypt.compare(_password, _hash)
     return compare
+}
+
+function handleJwt(_userData){
+    const payload = {
+        id: _userData.id,
+        email: _userData.email,
+        role: _userData.role
+    }
+    const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+        expiresIn: '7d'
+    })
+
+    return token
 }
 
 async function checkCredentials(_email, _password){
@@ -23,10 +38,18 @@ async function checkCredentials(_email, _password){
     const hash = tempUser.data.passwordHash
     const isMatch = await comparePassword(hash, _password)
     if(isMatch){
+        const _token = handleJwt(tempUser.data)
         return {
             status: 200,
             message: "Login successful",
-            data: tempUser.data
+            data: {
+                user: {
+                    id: tempUser.data.id,
+                    username: tempUser.data.username,
+                    email: tempUser.data.email
+                },
+                token: _token
+            }
         }
     }
     else{
@@ -108,4 +131,8 @@ async function getUser(_email){
     }
 }
 
-export {getUser, createUser}
+export {
+    getUser, 
+    createUser,
+    checkCredentials
+}
