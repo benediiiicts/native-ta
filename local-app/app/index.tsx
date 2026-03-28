@@ -1,7 +1,10 @@
-import { Redirect } from "expo-router";
+import { View } from "react-native";
+import Map from '../components/Map';
 
-function Index() {
-    return <Redirect href="/home" />;
+export default function Index() {
+  return (
+    <View style={{ flex: 1 }}>
+      <Map/>
+    </View>
+  );
 }
-
-export default Index
