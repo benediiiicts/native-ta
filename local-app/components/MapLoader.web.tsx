@@ -2,7 +2,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
-let API_KEY = process.env.API_KEY;
+let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
 function MapLoader({ active }: { active: boolean }){
