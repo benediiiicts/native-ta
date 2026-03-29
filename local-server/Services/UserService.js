@@ -35,7 +35,7 @@ async function checkCredentials(_email, _password){
             message: "Invalid email or password"
         }
     }
-    const hash = tempUser.data.passwordHash
+    const hash = tempUser.data.password
     const isMatch = await comparePassword(hash, _password)
     if(isMatch){
         const _token = handleJwt(tempUser.data)
@@ -82,7 +82,7 @@ async function createUser(_username, _email, _password){
             const newUser = await user.create({
                 username: _username,
                 email: _email,
-                passwordHash: hashedPassword
+                password: hashedPassword
             })
             return {
                 status: 201,
