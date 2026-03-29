@@ -1,7 +1,7 @@
 import { Sequelize, DataTypes } from "sequelize";
 import sequelize from "../database";
 
-//tag_roads -> menyimpan tag berdasarkan suatu lokasi, menyimpan data tag yang digunakan saat ini
+//tag_roads
 const tagRoads = sequelize.define('TagRoad',
     {
         id:{
@@ -21,10 +21,7 @@ const tagRoads = sequelize.define('TagRoad',
         isHidden:{
             type: DataTypes.BOOLEAN,
             defaultValue: false
-        },
-        activeVersionId:{
-            type: DataTypes.INTEGER
-        },
+        }
     },{
         tableName: 'tag_roads',
         underscored: true,
@@ -33,7 +30,7 @@ const tagRoads = sequelize.define('TagRoad',
     }
 )
 
-//tag_versions -> menyimpan data banyak tag dari suatu lokasi, hanya satu versi saja yang digunakan (diambil melalui tag_roads)
+//tag_versions
 const tagVersions = sequelize.define('TagVersion',
     {
         id:{
@@ -50,21 +47,33 @@ const tagVersions = sequelize.define('TagVersion',
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        conditionStatus:{
+        status:{
             type: DataTypes.STRING,
             allowNull: false
         },
         description:{
             type: DataTypes.TEXT
         },
-        reliabilityScore:{
+        score:{
             type: DataTypes.DOUBLE,
             defaultValue: 0
         },
-        isPriorityValidated:{
+        isVerified:{
             type: DataTypes.BOOLEAN,
             defaultValue: false
         },
+        approveCount:{
+            type: DataTypes.INTEGER,
+            defaultValue: 0
+        },
+        rejectCount:{
+            type: DataTypes.INTEGER,
+            defaultValue: 0
+        },
+        isHidden:{
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        }
     },{
         tableName: 'tag_versions',
         underscored: true,

@@ -30,7 +30,23 @@ async function userRegister(req, res){
     }
 }
 
+async function getUserByEmail(req, res){
+    try{
+        const email = req.params.email
+        let result = await getUser(email)
+        return res.status(result.status).json({
+            message: result.message,
+            data: result.data || null
+        })
+    }
+    catch(error){
+        console.log(`Cannot get user: ${error}`)
+        res.status(500).json({message: "Internal server error"})
+    }
+}
+
 export {
     userLogin,
-    userRegister
+    userRegister,
+    getUserByEmail
 }

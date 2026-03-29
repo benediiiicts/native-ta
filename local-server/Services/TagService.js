@@ -1,7 +1,6 @@
 import {tagRoads, tagVersions} from "../Models/TagModel"
 import { Op } from "sequelize";
 import { sequelize } from "../database";
-import { version } from "react";
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
@@ -47,7 +46,7 @@ async function checkRoadRadius(_latitude, _longitude){
 }
 
 // TAG ROAD
-async function createTagRoad(_userId, _latitude, _longitude, _conditionStatus, _description, _forceCreate = false){
+async function createTagRoad(_userId, _latitude, _longitude, _status, _description, _forceCreate = false){
     if(!_forceCreate){
         let tagExist = await checkRoadRadius(_latitude, _longitude)
 
@@ -69,15 +68,10 @@ async function createTagRoad(_userId, _latitude, _longitude, _conditionStatus, _
             const newVersion = await tagVersions.create({
                 tagRoadId: newRoad.id,
                 userId: _userId,
-                conditionStatus: _conditionStatus,
+                status: _status,
                 description: _description,
-                reliabilityScore: 0,
-                isPriorityValidated: false
-            }, {transaction: t})
-
-            //karena membuat tag road baru, maka versi saat ini akan menjadi versi utama
-            await newRoad.update({
-                activeVersionId: newVersion.id
+                score: 0,
+                isVerified: false
             }, {transaction: t})
 
             return {
@@ -87,7 +81,7 @@ async function createTagRoad(_userId, _latitude, _longitude, _conditionStatus, _
         })
 
         return{
-            status: 200,
+            status: 201,
             message: "New tag road and its initial version has been created successfully",
             data: result
         }
@@ -114,7 +108,7 @@ async function updateTagRoad(){
 }
 
 //TAG VERSION
-async function createTagVersion(_tagRoadId, _userId, _conditionStatus, _description){
+async function createTagVersion(_tagRoadId, _userId, _status, _description){
     const tagRoadExist = await getTagRoad(_tagRoadId)
     if(!tagRoadExist){
         return{
@@ -127,10 +121,10 @@ async function createTagVersion(_tagRoadId, _userId, _conditionStatus, _descript
             const newVersion = await tagVersions.create({
                 tagRoadId: _tagRoadId,
                 userId: _userId,
-                conditionStatus: _conditionStatus,
+                status: _status,
                 description: _description,
-                reliabilityScore: 0,
-                isPriorityValidated: false
+                score: 0,
+                isVerified: false
             }, {transaction: t})
 
             return newVersion

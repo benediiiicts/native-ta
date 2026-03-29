@@ -23,7 +23,7 @@ const user = sequelize.define('User',
                 notEmpty: true
             }
         },
-        passwordHash:{
+        password:{
             type: DataTypes.STRING,
             allowNull: false,
             validate:{
@@ -36,6 +36,10 @@ const user = sequelize.define('User',
             defaultValue: 'user',
             allowNull: false
         },
+        isActive:{
+            type: DataTypes.BOOLEAN,
+            defaultValue: true
+        }
     }, {
         tableName: 'users',
         underscored: true,
