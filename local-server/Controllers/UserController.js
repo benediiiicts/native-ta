@@ -1,4 +1,4 @@
-import {getUser, createUser, checkCredentials} from "../Services/UserService"
+import {getUser, createUser, checkCredentials} from "../Services/UserService.js"
 
 async function userLogin(req, res){
     try{
