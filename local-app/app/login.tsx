@@ -1,56 +1,101 @@
-import React, {useState} from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
-import { Link, router } from "expo-router";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
+import { Link, useRouter } from "expo-router";
 import { styles } from "../styles/LoginRegister.styles";
 import * as SecureStore from 'expo-secure-store';
 
-async function saveStorage(key: string, value: string){
-    await SecureStore.setItemAsync(key, value)
+async function saveStorage(key: string, value: string) {
+    if(Platform.OS == 'web'){
+        try{
+            localStorage.setItem(key, value);
+        }
+        catch(error){
+            console.error(`Local storage error: ${error}`);
+        }
+    }
+    else{
+        await SecureStore.setItemAsync(key, value);
+    }
 }
 
 async function getStorageValue(key: string){
-    let result = await SecureStore.getItemAsync(key)
-    return result
+    if (Platform.OS === 'web') {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.error("Local storage is unavailable:", e);
+            return null;
+        }
+    } else {
+        return await SecureStore.getItemAsync(key);
+    }
 }
 
 function Login() {
-    let [email, setEmail] = useState('')
-    let [password, setPassword] = useState('')
+    const router = useRouter();
 
-    async function handleLogin(){
+    let [email, setEmail] = useState('');
+    let [password, setPassword] = useState('');
+    let [errorMessage, setErrorMessage] = useState('');
+    let [successMessage, setSuccessMessage] = useState('');
+    let [isLoading, setIsLoading] = useState(false); 
+
+    async function handleLogin() {
+        setErrorMessage('');
+        setSuccessMessage('');
+
         if (!email || !password) {
-            Alert.alert("Perhatian", "Email dan password tidak boleh kosong.");
+            setErrorMessage("Email dan password tidak boleh kosong.");
             return;
         }
-        try{
-            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/users/login`
+
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!emailRegex.test(email)) {
+            setErrorMessage("Format email tidak valid (contoh: test@gmail.com).");
+            return;
+        }
+
+        if (password.length < 8) {
+            setErrorMessage("Password harus memiliki minimal 8 karakter.");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/users/login`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
-                headers:{
+                headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
-                body:JSON.stringify({
+                body: JSON.stringify({
                     email: email,
                     password: password
                 })
-            })
+            });
 
-            const jsonResponse = await response.json()
-            if(response.status == 200){
+            const jsonResponse = await response.json();
+
+            if (response.status === 200) {
                 if (jsonResponse.data && jsonResponse.data.token) {
                     await saveStorage('userToken', jsonResponse.data.token);
                 }
-                Alert.alert("Sukses", jsonResponse.message);
-                router.replace('/home');
-            }
-            else{
-                Alert.alert("Login Gagal", jsonResponse.message);
+                setSuccessMessage("Login berhasil! Mengalihkan...");
+
+                setTimeout(() => {
+                    setIsLoading(false);
+                    router.replace('/home');
+                }, 2000); 
+            } else {
+                setErrorMessage(jsonResponse.message);
+                setIsLoading(false);
             }
         }
-        catch(error){
+        catch (error) {
             console.error(error);
-            Alert.alert("Kesalahan Jaringan", "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.");
+            setErrorMessage("Kesalahan Jaringan. Tidak dapat terhubung ke server.");
+            setIsLoading(false);
         }
     }
 
@@ -74,6 +119,7 @@ function Login() {
                         autoCapitalize="none"
                         value={email}
                         onChangeText={setEmail}
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -86,23 +132,43 @@ function Login() {
                         secureTextEntry={true} 
                         value={password}
                         onChangeText={setPassword}
+                        editable={!isLoading}
                     />
                 </View>
-                <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                    <Text style={styles.loginButtonText}>Log in</Text>
+                
+                {errorMessage ? (
+                    <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 10, fontSize: 14 }}>
+                        {errorMessage}
+                    </Text>
+                ) : null}
+
+                {successMessage ? (
+                    <Text style={{ color: '#10B981', textAlign: 'center', marginBottom: 10, fontSize: 14, fontWeight: 'bold' }}>
+                        {successMessage}
+                    </Text>
+                ) : null}
+
+                <TouchableOpacity 
+                    style={[styles.loginButton, isLoading && { opacity: 0.7 }]} 
+                    onPress={handleLogin}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.loginButtonText}>
+                        {isLoading ? "Memproses..." : "Log in"}
+                    </Text>
                 </TouchableOpacity>
+                
                 <View style={styles.footerContainer}>
                     <Text style={styles.footerText}>Don't have an account?</Text>
                     <Link href="/register" asChild>
-                        <TouchableOpacity>
+                        <TouchableOpacity disabled={isLoading}>
                             <Text style={styles.registerLink}>Register</Text>
                         </TouchableOpacity>
                     </Link>
                 </View>
-
             </View>
         </View>
     );
 }
 
-export default Login
+export default Login;

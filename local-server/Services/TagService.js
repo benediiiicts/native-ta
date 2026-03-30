@@ -1,6 +1,6 @@
-import {tagRoads, tagVersions} from "../Models/TagModel"
+import {tagRoads, tagVersions} from "../Models/TagModel.js"
 import { Op } from "sequelize";
-import { sequelize } from "../database";
+import { sequelize } from "../database.js";
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
