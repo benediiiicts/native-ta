@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import {user} from "./Models/UserModel"
+import {user} from "../Models/UserModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
@@ -61,6 +61,13 @@ async function checkCredentials(_email, _password){
 }
 
 async function createUser(_username, _email, _password){
+    if (!_password || _password.length < 8) {
+        return {
+            status: 400,
+            message: "Password must be at least 8 characters long."
+        };
+    }
+    
     let checkUser = await getUser(_email)
 
     if(checkUser.status==200){
@@ -98,7 +105,7 @@ async function createUser(_username, _email, _password){
             console.log(`Error while creating user: ${error}`)
             return {
                 status: 500,
-                message: "Internal error, failed to register user"
+                message: `Internal error, failed to register user`
             }
         }
     }
