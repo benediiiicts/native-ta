@@ -11,7 +11,6 @@ function Register() {
     let [password, setPassword] = useState('');
     let [confirmPassword, setConfirmPassword] = useState('');
     
-    // State untuk mengelola UI balasan
     let [errorMessage, setErrorMessage] = useState('');
     let [successMessage, setSuccessMessage] = useState('');
     let [isLoading, setIsLoading] = useState(false); 
