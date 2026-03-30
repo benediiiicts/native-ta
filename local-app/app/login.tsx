@@ -1,11 +1,16 @@
-import React, {useState} from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
-import { Link, router } from "expo-router";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
+import { Link, useRouter } from "expo-router";
 import { styles } from "../styles/LoginRegister.styles";
 import * as SecureStore from 'expo-secure-store';
 
-async function saveStorage(key: string, value: string){
-    await SecureStore.setItemAsync(key, value)
+async function saveStorage(key: string, value: string) {
+    if(Platform.OS == 'web'){
+
+    }
+    else{
+        await SecureStore.setItemAsync(key, value);
+    }
 }
 
 async function getStorageValue(key: string){
@@ -14,43 +19,69 @@ async function getStorageValue(key: string){
 }
 
 function Login() {
-    let [email, setEmail] = useState('')
-    let [password, setPassword] = useState('')
+    const router = useRouter();
 
-    async function handleLogin(){
+    let [email, setEmail] = useState('');
+    let [password, setPassword] = useState('');
+    let [errorMessage, setErrorMessage] = useState('');
+
+    async function handleLogin() {
+        setErrorMessage('');
         if (!email || !password) {
-            Alert.alert("Perhatian", "Email dan password tidak boleh kosong.");
+            setErrorMessage("Email dan password tidak boleh kosong.");
             return;
         }
-        try{
-            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/users/login`
+
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!emailRegex.test(email)) {
+            setErrorMessage("Format email tidak valid (contoh: test@gmail.com).");
+            return;
+        }
+
+        if (password.length < 8) {
+            setErrorMessage("Password harus memiliki minimal 8 karakter.");
+            return;
+        }
+
+        try {
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/users/login`;
+            
             const response = await fetch(apiUrl, {
                 method: 'POST',
-                headers:{
+                headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
-                body:JSON.stringify({
+                body: JSON.stringify({
                     email: email,
                     password: password
                 })
-            })
+            });
 
-            const jsonResponse = await response.json()
-            if(response.status == 200){
+            const jsonResponse = await response.json();
+
+            if (response.status === 200) {
                 if (jsonResponse.data && jsonResponse.data.token) {
                     await saveStorage('userToken', jsonResponse.data.token);
                 }
-                Alert.alert("Sukses", jsonResponse.message);
-                router.replace('/home');
-            }
-            else{
-                Alert.alert("Login Gagal", jsonResponse.message);
+                
+                Alert.alert(
+                    "Login Berhasil", 
+                    jsonResponse.message,
+                    [
+                        { 
+                            text: "OK", 
+                            onPress: () => router.replace('/home') 
+                        }
+                    ]
+                );
+            } else {
+                setErrorMessage(jsonResponse.message);
             }
         }
-        catch(error){
+        catch (error) {
             console.error(error);
-            Alert.alert("Kesalahan Jaringan", "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.");
+            setErrorMessage("Kesalahan Jaringan. Tidak dapat terhubung ke server.");
         }
     }
 
@@ -88,9 +119,17 @@ function Login() {
                         onChangeText={setPassword}
                     />
                 </View>
+                
+                {errorMessage ? (
+                    <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 10, fontSize: 14 }}>
+                        {errorMessage}
+                    </Text>
+                ) : null}
+
                 <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                     <Text style={styles.loginButtonText}>Log in</Text>
                 </TouchableOpacity>
+                
                 <View style={styles.footerContainer}>
                     <Text style={styles.footerText}>Don't have an account?</Text>
                     <Link href="/register" asChild>
@@ -99,10 +138,9 @@ function Login() {
                         </TouchableOpacity>
                     </Link>
                 </View>
-
             </View>
         </View>
     );
 }
 
-export default Login
+export default Login;
