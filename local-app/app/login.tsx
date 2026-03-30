@@ -6,7 +6,12 @@ import * as SecureStore from 'expo-secure-store';
 
 async function saveStorage(key: string, value: string) {
     if(Platform.OS == 'web'){
-
+        try{
+            localStorage.setItem(key, value);
+        }
+        catch(error){
+            console.error(`Local storage error: ${error}`);
+        }
     }
     else{
         await SecureStore.setItemAsync(key, value);
@@ -14,8 +19,16 @@ async function saveStorage(key: string, value: string) {
 }
 
 async function getStorageValue(key: string){
-    let result = await SecureStore.getItemAsync(key)
-    return result
+    if (Platform.OS === 'web') {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.error("Local storage is unavailable:", e);
+            return null;
+        }
+    } else {
+        return await SecureStore.getItemAsync(key);
+    }
 }
 
 function Login() {
@@ -24,9 +37,13 @@ function Login() {
     let [email, setEmail] = useState('');
     let [password, setPassword] = useState('');
     let [errorMessage, setErrorMessage] = useState('');
+    let [successMessage, setSuccessMessage] = useState('');
+    let [isLoading, setIsLoading] = useState(false); 
 
     async function handleLogin() {
         setErrorMessage('');
+        setSuccessMessage('');
+
         if (!email || !password) {
             setErrorMessage("Email dan password tidak boleh kosong.");
             return;
@@ -44,8 +61,8 @@ function Login() {
         }
 
         try {
+            setIsLoading(true);
             const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/users/login`;
-            
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -64,24 +81,21 @@ function Login() {
                 if (jsonResponse.data && jsonResponse.data.token) {
                     await saveStorage('userToken', jsonResponse.data.token);
                 }
-                
-                Alert.alert(
-                    "Login Berhasil", 
-                    jsonResponse.message,
-                    [
-                        { 
-                            text: "OK", 
-                            onPress: () => router.replace('/home') 
-                        }
-                    ]
-                );
+                setSuccessMessage("Login berhasil! Mengalihkan...");
+
+                setTimeout(() => {
+                    setIsLoading(false);
+                    router.replace('/home');
+                }, 2000); 
             } else {
                 setErrorMessage(jsonResponse.message);
+                setIsLoading(false);
             }
         }
         catch (error) {
             console.error(error);
             setErrorMessage("Kesalahan Jaringan. Tidak dapat terhubung ke server.");
+            setIsLoading(false);
         }
     }
 
@@ -105,6 +119,7 @@ function Login() {
                         autoCapitalize="none"
                         value={email}
                         onChangeText={setEmail}
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -117,6 +132,7 @@ function Login() {
                         secureTextEntry={true} 
                         value={password}
                         onChangeText={setPassword}
+                        editable={!isLoading}
                     />
                 </View>
                 
@@ -126,14 +142,26 @@ function Login() {
                     </Text>
                 ) : null}
 
-                <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                    <Text style={styles.loginButtonText}>Log in</Text>
+                {successMessage ? (
+                    <Text style={{ color: '#10B981', textAlign: 'center', marginBottom: 10, fontSize: 14, fontWeight: 'bold' }}>
+                        {successMessage}
+                    </Text>
+                ) : null}
+
+                <TouchableOpacity 
+                    style={[styles.loginButton, isLoading && { opacity: 0.7 }]} 
+                    onPress={handleLogin}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.loginButtonText}>
+                        {isLoading ? "Memproses..." : "Log in"}
+                    </Text>
                 </TouchableOpacity>
                 
                 <View style={styles.footerContainer}>
                     <Text style={styles.footerText}>Don't have an account?</Text>
                     <Link href="/register" asChild>
-                        <TouchableOpacity>
+                        <TouchableOpacity disabled={isLoading}>
                             <Text style={styles.registerLink}>Register</Text>
                         </TouchableOpacity>
                     </Link>
