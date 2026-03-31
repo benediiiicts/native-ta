@@ -22,8 +22,8 @@ async function getStorageValue(key: string){
     if (Platform.OS === 'web') {
         try {
             return localStorage.getItem(key);
-        } catch (e) {
-            console.error("Local storage is unavailable:", e);
+        } catch (error) {
+            console.error(`Local storage is unavailable: ${error}`);
             return null;
         }
     } else {

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/Navbar.styles';
 import { useRouter } from 'expo-router';
 
-export default function Navbar() {
+function Navbar({ login, onLogout }: { login: boolean; onLogout: () => void }) {
     let router = useRouter()
 
     return (
@@ -18,13 +18,32 @@ export default function Navbar() {
                     placeholderTextColor="#888"
                 />
             </View>
-            
-            <TouchableOpacity 
-                style={styles.loginBtn} 
-                onPress={() => router.push('../login')}
-            >
-                <Text style={styles.loginText}>Login</Text>
-            </TouchableOpacity>
+            {login ? (
+                <TouchableOpacity 
+                    style={styles.logoutBtn} 
+                    onPress={onLogout}
+                >
+                    <Text style={styles.loginText}>Logout</Text>
+                </TouchableOpacity>
+            ) : (
+                <>
+                    <TouchableOpacity 
+                        style={styles.loginBtn}
+                        onPress={() => router.push('/login')} 
+                    >
+                        <Text style={styles.loginText}>Login</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={styles.loginBtn} 
+                        onPress={() => router.push('/register')}
+                    >
+                        <Text style={styles.loginText}>Register</Text>
+                    </TouchableOpacity>
+                </>
+            )}
         </View>
     );
 }
+
+export default Navbar
