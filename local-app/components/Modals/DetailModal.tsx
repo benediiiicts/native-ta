@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Modal, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { styles } from "../styles/DetailModal.styles";
+import { styles } from "@/styles/DetailModal.styles";
 
 function DetailModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
     let [commentMode, setCommentMode] = useState(false);
