@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active }: {active: boolean}) {
+function Map({ active, targetLocation=false }: {active: boolean; targetLocation?: any}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
@@ -76,6 +76,17 @@ function Map({ active }: {active: boolean}) {
             }, 1000)
         }
     }, [active])
+
+    useEffect(() => {
+        if(targetLocation && targetLocation.latitude && targetLocation.longitude){
+            mapRef.current?.animateToRegion({
+                latitude: targetLocation.latitude,
+                longitude: targetLocation.longitude,
+                latitudeDelta: 0.002,
+                longitudeDelta: 0.002,
+            })
+        }
+    }, [targetLocation, mapRef])
 
     return (
         <View style={styles.wrapper}>

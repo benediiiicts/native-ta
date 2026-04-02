@@ -66,5 +66,32 @@ export const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 15,
+    },
+    dropdownContainer: {
+        position: 'absolute',
+        top: 50, // Sesuaikan dengan tinggi searchBox Anda
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        borderRadius: 8,
+        maxHeight: 220, // KUNCI PENTING: Batasi tinggi agar bisa di-scroll walau limit 7
+        elevation: 5, // Bayangan di Android
+        shadowColor: '#000', // Bayangan di iOS/Web
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        zIndex: 1000,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    itemText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#1F2937',
+        lineHeight: 18,
     }
 });
