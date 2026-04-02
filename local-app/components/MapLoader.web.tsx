@@ -83,7 +83,7 @@ function SearchRegionTrack({targetLocation}: {targetLocation: any}){
     let map = useMap()
     useEffect(() => {
         if(targetLocation && targetLocation.latitude && targetLocation.longitude){
-            map.setView([targetLocation.latitude, targetLocation.longitude], 16, {animate: true})
+            map.setView([targetLocation.latitude, targetLocation.longitude], 18, {animate: true})
         }
     }, [targetLocation, map])
     return null
