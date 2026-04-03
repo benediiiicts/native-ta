@@ -5,7 +5,7 @@ import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-l
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function MapLoader({ active }: { active: boolean }){
+function MapLoader({ active, targetLocation=false}: { active: boolean; targetLocation?: any }){
     let [road, setRoad] = useState<any[]>([])
 
     useEffect(()=>{
@@ -26,6 +26,7 @@ function MapLoader({ active }: { active: boolean }){
                 url={map_path}
                 maxZoom={19}
             />
+            <SearchRegionTrack targetLocation={targetLocation}/>
             <RegionTrack active={active} onRegionChange={setRoad}/>
             {road.map((way)=>{
 
@@ -76,6 +77,16 @@ async function fetchOverpass(s: number, w: number, n: number, e: number){
         console.error("Failed to fetch from Overpass:", error);
         return [];
     }
+}
+
+function SearchRegionTrack({targetLocation}: {targetLocation: any}){
+    let map = useMap()
+    useEffect(() => {
+        if(targetLocation && targetLocation.latitude && targetLocation.longitude){
+            map.setView([targetLocation.latitude, targetLocation.longitude], 18, {animate: true})
+        }
+    }, [targetLocation, map])
+    return null
 }
 
 //track region saat ini
