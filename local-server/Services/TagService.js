@@ -54,8 +54,6 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
             return tagExist;
         }
     }
-
-    //if forced to create or if there is no tag existed
     
     try{
         const result = await sequelize.transaction(async t =>{
