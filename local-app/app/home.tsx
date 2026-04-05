@@ -1,4 +1,4 @@
-import { View, Button, Platform} from "react-native";
+import { View, Button, Platform, Alert} from "react-native";
 import Map from '../components/Map';
 import { useEffect, useState } from "react";
 import Navbar from '../components/Navbar';
@@ -28,6 +28,9 @@ function Home() {
     let [isLogedIn, setisLogedIn] = useState(false)
     let [searchLocation, setSearchLocation] = useState<any>(null)
     let [logoutModalVisible, setLogoutModalVisible] = useState(false)
+    let [isSelectingLocation, setIsSelectingLocation] = useState(false)
+    let [addModalVisible, setAddModalVisible] = useState(false)
+    let [pickedLocation, setPickedLocation] = useState<any>(null)
 
     useEffect(() => {
         const checkLogin = async () => {
@@ -72,23 +75,76 @@ function Home() {
         }
     }
 
+    function selectLocation(){
+        setAddModalVisible(false)
+        setIsSelectingLocation(true)
+    }
+
+    function handlePickLocation(roadData: any){
+        if(!isSelectingLocation) return
+        if(Platform.OS === 'web'){
+            alert(
+                
+            )
+        }
+        else{
+            Alert.alert(
+                "Location confirmation",
+                "Use this location?",
+                [
+                    {
+                        text: "Cancel",
+                        style: "cancel"
+                    },
+                    {
+                        text: "Continue",
+                        onPress: () => {
+                            setPickedLocation(roadData)
+                            setIsSelectingLocation(false)
+                            setAddModalVisible(true)
+                        }
+                    }
+                ]
+            )
+        }
+        //pop up untuk konfirmasi lokasi yang dipilih 
+    }
+
     return (
         <View style={{ flex: 1 }}>
-            <Map active={tagMode} targetLocation={searchLocation}/>
-            <Navbar login={isLogedIn} onLogout={() => setLogoutModalVisible(true)} onSearchResults={handleLocationSearch}/>
+            <Map active={isSelectingLocation} targetLocation={searchLocation} onRoadSelect={handlePickLocation}/>
+            {isSelectingLocation && (
+                <Navbar login={isLogedIn} onLogout={() => setLogoutModalVisible(true)} onSearchResults={handleLocationSearch}/>
+            )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
-                <Button 
-                    title={tagMode ? "Cancel" : "Add tag"} 
-                    onPress={() => setTagMode(!tagMode)} 
-                />
-                <Button
-                    title={DetailModalMode? "Close": "Tag details"}
-                    onPress={() => setDetailModalMode(!DetailModalMode)}
-                />
+                {isSelectingLocation? (
+                    <Button
+                        title="Cancel"
+                        onPress={()=>{
+                            setIsSelectingLocation(false)
+                            setAddModalVisible(true)
+                        }}
+                    />
+                ):(
+                    <Button
+                        title="Add Tag"
+                        onPress={()=>{
+                            setAddModalVisible(false)
+                        }}
+                    />
+                )}
+                {!isSelectingLocation && (
+                    <Button
+                        title={DetailModalMode? "Close": "Tag details"}
+                        onPress={() => setDetailModalMode(!DetailModalMode)}
+                    />
+                )}
             </View>
             <AddTagModal
                 visible={tagMode}
                 onClose={() => {setTagMode(!tagMode); return {}}}
+                onPickLocation={selectLocation}
+                selectedLocation={pickedLocation}
             />
             <DetailModal
                 visible={DetailModalMode}

@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active, targetLocation=false }: {active: boolean; targetLocation?: any}) {
+function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
