@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Modal, TextInput, StyleSheet, KeyboardAvo
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import styles from "@/styles/AddTagModal.styles";
 
-function AddTagModal({ visible, onClose }: {visible: boolean; onClose: () => {}}) {
+function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: {visible: boolean; onClose: () => {}; onPickLocation: any; selectedLocation: any}) {
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
 
