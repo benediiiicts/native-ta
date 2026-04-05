@@ -1,6 +1,7 @@
 import {tagRoads, tagVersions} from "../Models/TagModel.js"
 import { Op } from "sequelize";
 import { sequelize } from "../database.js";
+import { saveImages } from "./ImageService.js";
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
@@ -46,7 +47,7 @@ async function checkRoadRadius(_latitude, _longitude){
 }
 
 // TAG ROAD
-async function createTagRoad(_userId, _latitude, _longitude, _status, _description, _forceCreate = false){
+async function createTagRoad(_userId, _latitude, _longitude, _status, _description, _forceCreate = false, _images){
     if(!_forceCreate){
         let tagExist = await checkRoadRadius(_latitude, _longitude)
 
@@ -72,9 +73,14 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
                 isVerified: false
             }, {transaction: t})
 
+            let savedImages = []
+            if(_images && _images.length > 0){
+                savedImages = await saveImages(newVersion.id, _images, t)
+            }
             return {
                 road: newRoad,
-                version: newVersion
+                version: newVersion,
+                images: savedImages
             }
         })
 
@@ -86,6 +92,12 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
     }
     catch(error){
         console.log(`Transaction error while creating tag road: ${error} `)
+        if(error.status){
+            return {
+                status: error.status,
+                message: error.message
+            }
+        }
         return{
             status: 500,
             message: "Failed to create tag road due to server error"
@@ -106,7 +118,7 @@ async function updateTagRoad(){
 }
 
 //TAG VERSION
-async function createTagVersion(_tagRoadId, _userId, _status, _description){
+async function createTagVersion(_tagRoadId, _userId, _status, _description, _images){
     const tagRoadExist = await getTagRoad(_tagRoadId)
     if(!tagRoadExist){
         return{
@@ -125,7 +137,14 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description){
                 isVerified: false
             }, {transaction: t})
 
-            return newVersion
+            let savedImages = []
+            if(_images && _images.length > 0){
+                savedImages = await saveImages(newVersion.id, _images, t)
+            }
+            return {
+                version: newVersion,
+                images: savedImages
+            }
         })
 
         return {
@@ -136,6 +155,12 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description){
     }
     catch(error){
         console.log(`Error while creating new version of the tag: ${error}`)
+        if(error.status){
+            return{
+                status: error.status,
+                message: error.message
+            }
+        }
         return{
             status: 500,
             message: "Internal server error"
