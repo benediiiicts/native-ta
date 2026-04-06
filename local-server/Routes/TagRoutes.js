@@ -8,4 +8,3 @@ router.post('/tag-roads', upload.array('images', 5), addNewTagRoad)
 router.post('/tag-version', upload.array('images', 5), addNewTagVersion)
 
 export default router
-
