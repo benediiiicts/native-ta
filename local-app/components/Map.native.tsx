@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active, targetLocation=false }: {active: boolean; targetLocation?: any}) {
+function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
@@ -114,6 +114,11 @@ function Map({ active, targetLocation=false }: {active: boolean; targetLocation?
                         longitude: pos.lon
                     }));
 
+                    let roadName = 'Unknown';
+                    if(way.tags && way.tags.name){
+                        roadName = way.tags.name
+                    }
+
                     return (
                         <Polyline
                             key={way.id}
@@ -123,10 +128,13 @@ function Map({ active, targetLocation=false }: {active: boolean; targetLocation?
                             zIndex={2}
                             tappable={true} 
                             onPress={(e) => {
-                                if (e.nativeEvent.coordinate) {
-                                    const clickedLat = e.nativeEvent.coordinate.latitude;
-                                    const clickedLng = e.nativeEvent.coordinate.longitude;
-                                    Alert.alert(`ID: ${way.id}\nKoordinat:\nLat:${clickedLat.toFixed(5)}\nLong:${clickedLng.toFixed(5)}`)
+                                if (active && onRoadSelect) {
+                                    onRoadSelect({
+                                        id: way.id,
+                                        name: roadName,
+                                        latitude: e.nativeEvent.coordinate?.latitude,
+                                        longitude: e.nativeEvent.coordinate?.longitude
+                                    })
                                 }
                             }}
                         />
