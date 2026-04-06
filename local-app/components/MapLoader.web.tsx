@@ -5,7 +5,7 @@ import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-l
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function MapLoader({ active, targetLocation=false}: { active: boolean; targetLocation?: any }){
+function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: boolean; targetLocation?: any; onRoadSelect: any }){
     let [road, setRoad] = useState<any[]>([])
 
     useEffect(()=>{
@@ -34,6 +34,10 @@ function MapLoader({ active, targetLocation=false}: { active: boolean; targetLoc
 
                 let coordinates = way.geometry.map((pos: any) => [pos.lat, pos.lon]);
 
+                let roadName = 'Unknown'
+                if(way.tags && way.tags.name){
+                    roadName = way.tags.name
+                }
                 console.log(coordinates)
 
                 return (
@@ -46,9 +50,14 @@ function MapLoader({ active, targetLocation=false}: { active: boolean; targetLoc
                         }}
                         eventHandlers={{
                             click: (e) => {
-                                let clickedLat = e.latlng.lat;
-                                let clickedLng = e.latlng.lng;
-                                alert(`ID: ${way.id}\nKoordinat:\nLat:${clickedLat.toFixed(5)}\nLong:${clickedLng.toFixed(5)}`);
+                                if(active && onRoadSelect){
+                                    onRoadSelect({
+                                        id: way.id,
+                                        name: roadName,
+                                        latitude: e.latlng.lat,
+                                        longitude: e.latlng.lng
+                                    })
+                                }
                             }
                         }}
                     />
