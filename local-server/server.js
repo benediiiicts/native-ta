@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import userRouter from './Routes/UserRoutes.js'
+import tagRouter from './Routes/TagRoutes.js'
 import sequelize from './database.js'
 import 'dotenv/config';
 
@@ -17,6 +18,7 @@ app.use(express.json())
 //Routes API
 const port = 8080
 app.use('/api/users', userRouter)
+app.use('/api/tags', tagRouter)
 
 app.listen(port, async ()=>{
     try {

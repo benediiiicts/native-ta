@@ -114,6 +114,11 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                         longitude: pos.lon
                     }));
 
+                    let roadName = 'Unknown';
+                    if(way.tags && way.tags.name){
+                        roadName = way.tags.name
+                    }
+
                     return (
                         <Polyline
                             key={way.id}
@@ -123,10 +128,13 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                             zIndex={2}
                             tappable={true} 
                             onPress={(e) => {
-                                if (e.nativeEvent.coordinate) {
-                                    const clickedLat = e.nativeEvent.coordinate.latitude;
-                                    const clickedLng = e.nativeEvent.coordinate.longitude;
-                                    Alert.alert(`ID: ${way.id}\nKoordinat:\nLat:${clickedLat.toFixed(5)}\nLong:${clickedLng.toFixed(5)}`)
+                                if (active && onRoadSelect) {
+                                    onRoadSelect({
+                                        id: way.id,
+                                        name: roadName,
+                                        latitude: e.nativeEvent.coordinate?.latitude,
+                                        longitude: e.nativeEvent.coordinate?.longitude
+                                    })
                                 }
                             }}
                         />

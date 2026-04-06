@@ -3,7 +3,8 @@ import {saveImages} from '../Services/ImageService.js'
 
 async function addNewTagRoad(req, res){
     try{
-        const {userId, latitude, longitude, status, description, forceCreate} = req.body
+        const userId = req.user.id
+        const {latitude, longitude, status, description, forceCreate} = req.body
         const isForceCreate = (forceCreate=='true'||forceCreate==true)
         const images = req.files || []
         let tagResult = await createTagRoad(userId, latitude, longitude, status, description, isForceCreate, images)
@@ -18,7 +19,8 @@ async function addNewTagRoad(req, res){
 
 async function addNewTagVersion(req, res){
     try{
-        const {tagRoadId, userId, status, description} = req.body
+        const userId = req.user.id
+        const {tagRoadId, status, description} = req.body
         const images = req.files || []
         let versionResult = await createTagVersion(tagRoadId, userId, status, description, images)
 
