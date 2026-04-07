@@ -1,12 +1,13 @@
 import { View, Button, Platform, Alert} from "react-native";
 import Map from '../components/Map';
 import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import Navbar from '../components/Navbar';
 import DetailModal from "../components/Modals/DetailModal";
-import LogoutModal from "@/components/Modals/LogoutModal";
 import AddTagModal from "@/components/Modals/AddTagModal";
 import ConfirmModal from "@/components/Modals/ConfirmationModal";
 import * as SecureStore from 'expo-secure-store';
+import WarningModal from "@/components/Modals/WarningModal";
 
 async function getStorageValue(key: string){
     if (Platform.OS === 'web') {
@@ -22,6 +23,7 @@ async function getStorageValue(key: string){
 }
 
 function Home() {
+    const router = useRouter()
     const tokenKey = 'userToken';
 
     let [isLogedIn, setisLogedIn] = useState(false)
@@ -29,6 +31,12 @@ function Home() {
     //state untuk modal konfirmasi
     let [confirmLocationVisible, setConfirmLocationVisible] = useState(false);
     let [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+
+    //untuk modal warning
+    const [warningVisible, setWarningVisible] = useState(false);
+    const [warningTitle, setWarningTitle] = useState("");
+    const [warningMessage, setWarningMessage] = useState("");
+    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
 
     let [DetailModalMode, setDetailModalMode] = useState(false)
     let [searchLocation, setSearchLocation] = useState<any>(null)
@@ -64,6 +72,22 @@ function Home() {
         }
         setisLogedIn(false)
         setConfirmLogoutVisible(false)
+    }
+
+    function showWarning(title: string, message: string, onConfirmAction?: () => void){
+        setWarningTitle(title);
+        setWarningMessage(message);
+
+        if (onConfirmAction) {
+            setWarningOnConfirm(() => () => {
+                setWarningVisible(false)
+                onConfirmAction() 
+            });
+        } else {
+            setWarningOnConfirm(() => () => setWarningVisible(false))
+        }
+        
+        setWarningVisible(true)
     }
 
     function handleLocationSearch(data: any[]){
@@ -104,14 +128,30 @@ function Home() {
         setConfirmLocationVisible(false)
     }
 
+    function handleNotLoggedIn(){
+        showWarning(
+            'Anda belum login', 
+            'Login/ register untuk melakukan aksi', 
+            () => router.push('/login')
+        )
+    }
+
     return (
         <View style={{ flex: 1 }}>
             <Map active={isSelectingLocation} targetLocation={searchLocation} onRoadSelect={handlePickLocation}/>
-            {!isSelectingLocation && (
+            {isSelectingLocation? (
                 <Navbar 
                     login={isLogedIn} 
                     onLogout={() => setConfirmLogoutVisible(true)} 
                     onSearchResults={handleLocationSearch}
+                    onPickLocationMode={true}
+                />
+            ):(
+                <Navbar 
+                    login={isLogedIn} 
+                    onLogout={() => setConfirmLogoutVisible(true)} 
+                    onSearchResults={handleLocationSearch}
+                    onPickLocationMode={false}
                 />
             )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
@@ -120,14 +160,14 @@ function Home() {
                         title="Cancel"
                         onPress={()=>{
                             setIsSelectingLocation(false)
-                            setAddModalVisible(true)
+                            setAddModalVisible(false)
                         }}
                     />
                 ):(
                     <Button
                         title="Add Tag"
                         onPress={()=>{
-                            setAddModalVisible(true)
+                            (isLogedIn? setAddModalVisible(true): handleNotLoggedIn())
                         }}
                     />
                 )}
@@ -165,6 +205,14 @@ function Home() {
                 isDestructive={true}
                 onConfirm={handleLogout}
                 onCancel={()=>setConfirmLogoutVisible(false)}
+            />
+            <WarningModal
+                visible={warningVisible}
+                title={warningTitle}
+                message={warningMessage}
+                confirmText="Login"
+                onConfirm={warningOnConfirm}
+                onCancel={() => setWarningVisible(false)}
             />
         </View>
     );

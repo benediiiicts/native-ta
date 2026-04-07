@@ -51,6 +51,10 @@ const styles = StyleSheet.create({
     primaryBtn: {
         backgroundColor: '#3B82F6', // Biru untuk aksi positif (Pilih Lokasi, Simpan)
     },
+    confitmBtn: {
+        backgroundColor: '#3B82F6',
+        alignItems: 'center'
+    },
     destructiveBtn: {
         backgroundColor: '#EF4444', // Merah untuk aksi negatif (Logout, Hapus)
     },
