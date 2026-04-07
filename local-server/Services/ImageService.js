@@ -1,4 +1,3 @@
-import sequelize from "../database.js";
 import { versionImages } from "../Models/ImageModel.js";
 
 async function saveImages(_tagVersionId, _images, t) {

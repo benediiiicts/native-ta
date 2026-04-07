@@ -12,7 +12,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
         way["highway"](${s}, ${w}, ${n}, ${e});
         out geom;
     `;
-    let url_overpass = `https://maps.mail.ru/osm/tools/overpass/api/interpreter?data=${encodeURIComponent(query)}`;
+    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
         let response = await fetch(url_overpass);

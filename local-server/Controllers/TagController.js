@@ -1,4 +1,4 @@
-import {createTagRoad, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, updateTagVersion} from '../Services/TagServices.js'
+import {createTagRoad, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, updateTagVersion} from '../Services/TagService.js'
 import {saveImages} from '../Services/ImageService.js'
 
 async function addNewTagRoad(req, res){

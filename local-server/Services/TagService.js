@@ -1,6 +1,6 @@
 import {tagRoads, tagVersions} from "../Models/TagModel.js"
 import { Op } from "sequelize";
-import { sequelize } from "../database.js";
+import sequelize from "../database.js";
 import { saveImages } from "./ImageService.js";
 
 async function checkRoadRadius(_latitude, _longitude){

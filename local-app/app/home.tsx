@@ -87,7 +87,7 @@ function Home() {
     }
 
     function handlePickLocation(roadData: any){
-        if(!isSelectingLocation) return
+        console.log('Masuk function handlePickLocation')
         setTempLocation(roadData)
         setConfirmLocationVisible(true)
     }
@@ -107,8 +107,12 @@ function Home() {
     return (
         <View style={{ flex: 1 }}>
             <Map active={isSelectingLocation} targetLocation={searchLocation} onRoadSelect={handlePickLocation}/>
-            {isSelectingLocation && (
-                <Navbar login={isLogedIn} onLogout={() => setConfirmLocationVisible(true)} onSearchResults={handleLocationSearch}/>
+            {!isSelectingLocation && (
+                <Navbar 
+                    login={isLogedIn} 
+                    onLogout={() => setConfirmLogoutVisible(true)} 
+                    onSearchResults={handleLocationSearch}
+                />
             )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
                 {isSelectingLocation? (
@@ -123,7 +127,7 @@ function Home() {
                     <Button
                         title="Add Tag"
                         onPress={()=>{
-                            setAddModalVisible(false)
+                            setAddModalVisible(true)
                         }}
                     />
                 )}

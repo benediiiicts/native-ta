@@ -46,11 +46,13 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                         positions={coordinates}
                         pathOptions={{ 
                             color: 'rgba(0, 100, 255, 0.6)', 
-                            weight: 5 
+                            weight: 10,
+                            interactive: true 
                         }}
                         eventHandlers={{
                             click: (e) => {
-                                if(active && onRoadSelect){
+                                console.log("Garis jalan ditekan!", roadName);
+                                if(onRoadSelect){
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
@@ -74,7 +76,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number){
     way["highway"](${s}, ${w}, ${n}, ${e});
     out geom;
     `;
-    let url_overpass = `https://maps.mail.ru/osm/tools/overpass/api/interpreter?data=${encodeURIComponent(query)}`;
+    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
         let response = await fetch(url_overpass);
@@ -105,7 +107,7 @@ function RegionTrack({ onRegionChange, active }: { onRegionChange: any; active: 
 
     useEffect(()=>{
         if(active){
-            map.setZoom(18, {animate: true})
+            map.setZoom(19, {animate: true})
         }
     }, [active, map])
 
