@@ -28,6 +28,9 @@ function Home() {
 
     let [isLogedIn, setisLogedIn] = useState(false)
 
+    //tags
+    const [allTags, setAllTags] = useState<any[]>([])
+
     //state untuk modal konfirmasi
     let [confirmLocationVisible, setConfirmLocationVisible] = useState(false);
     let [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
@@ -55,6 +58,10 @@ function Home() {
         }
 
         checkLogin()
+    }, [])
+
+    useEffect(() => {
+        loadAllTags()
     }, [])
 
     async function handleLogout(){
@@ -88,6 +95,20 @@ function Home() {
         }
         
         setWarningVisible(true)
+    }
+
+    async function loadAllTags(){
+        try{
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/fetch-all`
+            const response = await fetch(apiUrl)
+            const jsonResponse = await response.json()
+            if(jsonResponse.status == 200){
+                setAllTags(jsonResponse.data)
+            }
+        }
+        catch(error){
+            console.error(`Gagal memuat data tag ${error}`)
+        }
     }
 
     function handleLocationSearch(data: any[]){
@@ -138,7 +159,12 @@ function Home() {
 
     return (
         <View style={{ flex: 1 }}>
-            <Map active={isSelectingLocation} targetLocation={searchLocation} onRoadSelect={handlePickLocation}/>
+            <Map 
+                active={isSelectingLocation} 
+                targetLocation={searchLocation} 
+                onRoadSelect={handlePickLocation}
+                tags={allTags}
+            />
             {isSelectingLocation? (
                 <Navbar 
                     login={isLogedIn} 

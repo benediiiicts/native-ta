@@ -27,7 +27,21 @@ async function getStorageValue(key: string){
     }
 }
 
-const TAG_TYPES = ['Jalan berlubang', 'Fasilitas rusak']
+export const TAG_TYPES = [
+    'Jalan Rusak',           
+    'Fasilitas Jalan Rusak', 
+    'Genangan Air / Banjir', 
+    'Hambatan Jalan',        
+    'Kecelakaan Lalu Lintas',
+    'Penutupan / Proyek Jalan'
+];
+
+export const TAG_STATUSES = [
+    'Menunggu Tindakan',    
+    'Dalam Penanganan',     
+    'Sudah Diperbaiki',     
+    'Kedaluwarsa / Tidak Valid'
+];
 
 function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: AddTagModalProps) {
     const tokenKey = 'userToken';
@@ -108,7 +122,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
             formData.append("latitude", selectedLocation.latitude.toString())
             formData.append("longitude", selectedLocation.longitude.toString())
             formData.append("roadClass", selectedLocation.roadClass || 'Unclassified')
-            formData.append("status", tagType)
+            formData.append("issueType", tagType);
             formData.append("description", description)
             formData.append("forceCreate", forceCreate ? "true" : "false")
         

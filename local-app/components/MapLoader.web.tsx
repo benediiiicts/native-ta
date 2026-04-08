@@ -1,11 +1,19 @@
+import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+
+let DefaultIcon = L.icon({
+    iconUrl: require('leaflet/dist/images/marker-icon.png').default,
+    shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: boolean; targetLocation?: any; onRoadSelect: any }){
+function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[]}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[] }){
     let [road, setRoad] = useState<any[]>([])
 
     useEffect(()=>{
@@ -70,6 +78,19 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                             }
                         }}
                     />
+                )
+            })}
+            {tags.map((tag)=>{
+                return(
+                    <Marker
+                        key={tag.id}
+                        position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
+                    >
+                        <Popup>
+                            <b>{tag.issueType || tag.issue_type}</b> <br />
+                            Klik untuk melihat detail.
+                        </Popup>
+                    </Marker>
                 )
             })}
         </MapContainer>
