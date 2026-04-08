@@ -47,7 +47,7 @@ async function checkRoadRadius(_latitude, _longitude){
 }
 
 // TAG ROAD
-async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _status, _description, _forceCreate = false, _images){
+async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _issueType, _description, _forceCreate = false, _images){
     if(!_forceCreate){
         let tagExist = await checkRoadRadius(_latitude, _longitude)
 
@@ -62,13 +62,14 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _status
                 latitude: _latitude,
                 longitude: _longitude,
                 isHidden: false,
-                roadClass: _roadClass
+                roadClass: _roadClass,
+                issueType: _issueType,
             }, {transaction: t})
 
             const newVersion = await tagVersions.create({
                 tagRoadId: newRoad.id,
                 userId: _userId,
-                status: _status,
+                status: "Menunggu Tindakan",
                 description: _description,
                 score: 0,
                 isVerified: false
@@ -96,7 +97,7 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _status
         }
     }
     catch(error){
-        console.log(`Transaction error while creating tag road: ${error} `)
+        console.error(`Transaction error while creating tag road: ${error} `)
         if(error.status){
             return {
                 status: error.status,
@@ -111,7 +112,39 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _status
 }
 
 async function getTagRoad(_tagRoadId){
-    return await tagRoads.findByPk(_tagRoadId)
+    try{
+        const fetchRoad = await tagRoads.findByPk(_tagRoadId)
+        return {
+            data: fetchRoad,
+            status: 200
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching tag ${error}`)
+        return{
+            status: 500,
+            message: "Failed to fetch tag due to server error"
+        }
+    }
+}
+
+async function getAllTags(){
+    try{
+        const fetchTags = await tagRoads.findAll({
+            where: {is_hidden: false}
+        })
+        return {
+            data: fetchTags,
+            status: 200
+        } 
+    }
+    catch(error){
+        console.error(`Error while fetching tag ${error}`)
+        return{
+            status: 500,
+            message: "Failed to fetch tags due to server error"
+        }
+    }
 }
 
 async function deleteTagRoad(){
@@ -188,6 +221,7 @@ async function updateTagVersion(){
 export {
     createTagRoad, 
     getTagRoad,
+    getAllTags,
     deleteTagRoad,
     updateTagRoad,
     createTagVersion, 

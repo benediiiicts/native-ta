@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import MapView, { Polyline, UrlTile, type Region } from "react-native-maps";
+import { StyleSheet, View } from "react-native";
+import MapView, { Marker, Polyline, UrlTile, type Region } from "react-native-maps";
 
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any}) {
+function Map({ active, targetLocation=false, onRoadSelect, tags = [] }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
@@ -144,6 +144,19 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                                     })
                                 }
                             }}
+                        />
+                    );
+                })}
+                {tags.map((tag) => {
+                    return (
+                        <Marker
+                            key={tag.id}
+                            coordinate={{
+                                latitude: parseFloat(tag.latitude),
+                                longitude: parseFloat(tag.longitude),
+                            }}
+                            title={tag.issueType || tag.issue_type}
+                            description="Klik untuk melihat detail"
                         />
                     );
                 })}
