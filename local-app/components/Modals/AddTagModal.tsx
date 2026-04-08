@@ -107,6 +107,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
             const formData = new FormData();
             formData.append("latitude", selectedLocation.latitude.toString())
             formData.append("longitude", selectedLocation.longitude.toString())
+            formData.append("roadClass", selectedLocation.roadClass || 'Unclassified')
             formData.append("status", tagType)
             formData.append("description", description)
             formData.append("forceCreate", forceCreate ? "true" : "false")
