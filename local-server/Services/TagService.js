@@ -47,7 +47,7 @@ async function checkRoadRadius(_latitude, _longitude){
 }
 
 // TAG ROAD
-async function createTagRoad(_userId, _latitude, _longitude, _status, _description, _forceCreate = false, _images){
+async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _status, _description, _forceCreate = false, _images){
     if(!_forceCreate){
         let tagExist = await checkRoadRadius(_latitude, _longitude)
 
@@ -61,7 +61,8 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
             const newRoad = await tagRoads.create({
                 latitude: _latitude,
                 longitude: _longitude,
-                isHidden: false
+                isHidden: false,
+                roadClass: _roadClass
             }, {transaction: t})
 
             const newVersion = await tagVersions.create({
@@ -71,6 +72,10 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
                 description: _description,
                 score: 0,
                 isVerified: false
+            }, {transaction: t})
+
+            await newRoad.update({
+                activeVersionId: newVersion.id
             }, {transaction: t})
 
             let savedImages = []

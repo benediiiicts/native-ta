@@ -18,6 +18,14 @@ const tagRoads = sequelize.define('TagRoad',
             type: DataTypes.DECIMAL(11,8),
             allowNull: false
         },
+        activeVersionId:{
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
+        roadClass:{
+            type: DataTypes.STRING,
+            defaultValue: 'Unclassified'
+        },
         isHidden:{
             type: DataTypes.BOOLEAN,
             defaultValue: false

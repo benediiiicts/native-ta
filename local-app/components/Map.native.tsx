@@ -115,8 +115,14 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                     }));
 
                     let roadName = 'Unknown';
-                    if(way.tags && way.tags.name){
-                        roadName = way.tags.name
+                    let roadClass = 'Unclassified'
+                    if(way.tags){
+                        if(way.tags.name){
+                            roadName = way.tags.name   
+                        }
+                        if(way.tags.highway){
+                            roadClass = way.tags.highway;
+                        }
                     }
 
                     return (
@@ -132,6 +138,7 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
+                                        roadClass: roadClass,
                                         latitude: e.nativeEvent.coordinate?.latitude,
                                         longitude: e.nativeEvent.coordinate?.longitude
                                     })

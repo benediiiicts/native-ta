@@ -35,10 +35,16 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                 let coordinates = way.geometry.map((pos: any) => [pos.lat, pos.lon]);
 
                 let roadName = 'Unknown'
+                let roadClass = 'Unclassified'
                 if(way.tags && way.tags.name){
-                    roadName = way.tags.name
+                    if(way.tags.name){
+                        roadName = way.tags.name
+                    }
+                    if(way.tags.highway){
+                        roadClass = way.tags.highway
+                    }
                 }
-                console.log(coordinates)
+                // console.log(coordinates)
 
                 return (
                     <Polyline 
@@ -56,6 +62,7 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
+                                        roadName: way.tags.highway,
                                         latitude: e.latlng.lat,
                                         longitude: e.latlng.lng
                                     })
