@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active, targetLocation=false, onRoadSelect, tags = [] }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]}) {
+function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
@@ -157,6 +157,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [] }: {active:
                             }}
                             title={tag.issueType || tag.issue_type}
                             description="Klik untuk melihat detail"
+                            onPress={() => onTagSelect(tag)}
                         />
                     );
                 })}

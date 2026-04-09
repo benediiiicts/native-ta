@@ -3,7 +3,7 @@ import { lazy, Suspense } from "react";
 
 const MapLoader = lazy(() => import('./MapLoader.web'));
 
-function Map({ active, targetLocation, onRoadSelect, tags=[] }: { active: boolean; targetLocation: any; onRoadSelect: any; tags?: any[] }){
+function Map({ active, targetLocation, onRoadSelect, tags=[], onTagSelect }: { active: boolean; targetLocation: any; onRoadSelect: any; tags?: any[]; onTagSelect: any }){
 
     return(
         <View style={{ flex: 1 }}>
@@ -13,6 +13,7 @@ function Map({ active, targetLocation, onRoadSelect, tags=[] }: { active: boolea
                     targetLocation={targetLocation} 
                     onRoadSelect={onRoadSelect}
                     tags={tags}
+                    onTagSelect={onTagSelect}
                 />
             </Suspense>
         </View>
