@@ -116,10 +116,18 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _issueT
 
 async function getTagRoad(_tagRoadId){
     try{
-        const fetchRoad = await tagRoads.findByPk(_tagRoadId)
-        return {
-            data: fetchRoad,
-            status: 200
+        const fetchRoad = await tagRoads.findByPk(_tagRoadId,{
+            where: {is_hidden: false}
+        })
+        if(fetchRoad){
+            return {
+                data: fetchRoad,
+                status: 200
+            }
+        }
+        return{
+            status: 404,
+            message: "Tag road not found"
         }
     }
     catch(error){
@@ -252,15 +260,34 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
 }
 
 async function getTagVersion(_tagVersionId){
-    return await tagVersions.findByPk(_tagVersionId)
+    try{
+        const version = await tagVersions.findByPk(_tagVersionId)
+    }
+    catch(error){
+
+    }
 }
 
 async function deleteTagVersion(){
     
 }
 
-async function updateTagVersion(){
+async function voteTagVersion(_tagId, _voteType){
+    try{
+        const version = await tagVersions.findByPk(_tagId, {
+            where: {is_hidden: false}
+        })
+        if(version){
+            const approve = version.approveCount
+            const reject = version.rejectCount
+            (_voteType == 'Approve')? approve+=1 : reject+=1;
+            const totalVotes = approve + reject
+            const reliability = Math.round((approve/ totalVotes)*100)
+        }
+    }
+    catch(error){
 
+    }
 }
 
 export {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Modal, Pressable, Platform, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
@@ -22,6 +22,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [commentMode, setCommentMode] = useState(false)
     const [newComment, setNewComment] = useState('')
     
+    const scrollViewRef = useRef<ScrollView>(null);
 
     useEffect(()=>{
         if(visible && tagId){
@@ -48,6 +49,17 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             console.error(error)
         } finally{
             setIsLoading(false)
+        }
+    }
+
+    function scrollToImage (index: number){
+        if (scrollViewRef.current && sliderWidth > 0) {
+            scrollViewRef.current.scrollTo({
+                x: index * sliderWidth,
+                y: 0,
+                animated: true
+            });
+            setActiveIndex(index)
         }
     }
 
@@ -79,44 +91,85 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             <>
             <View style={styles.imageWrapper} onLayout={(e) => {setSliderWidth(e.nativeEvent.layout.width)}}>
                 <ScrollView
+                    ref={scrollViewRef}
                     horizontal
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
                     onScroll={handleScroll}
                     scrollEventThrottle={16}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, width: '100%' }}  
+                    contentContainerStyle={{ flexGrow: 1, flexDirection: 'row' }}
                 >
                     {images.length > 0 ? (
                         images.map(
                             (img: any, index: number) => {
-                                let imageUrl = `${process.env.EXPO_PUBLIC_API_URL}/${img.imageUrl}`
-
+                                let imageUrl = img.imageUrl.startsWith('http') 
+                                    ? img.imageUrl 
+                                    : `${process.env.EXPO_PUBLIC_API_URL}/uploads/${img.imageUrl}`;
                                 return (
-                                    <Image
-                                        key={index}
-                                        source={{uri: imageUrl}}
-                                        style={[styles.image, {width: sliderWidth > 0 ? sliderWidth : 400}]}
-                                    />
+                                    <View 
+                                        key={index} 
+                                        style={{ 
+                                            width: sliderWidth > 0 ? sliderWidth : '100%',
+                                            height: '100%',
+                                            justifyContent: 'center',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <Image
+                                            source={{uri: imageUrl}}
+                                            style={{ width: '100%', height: '100%' }} 
+                                            contentFit="cover"
+                                        />
+                                    </View>
                                 )
                             })
                     ):(
-                        <Image 
-                            source={{ uri: "https://via.placeholder.com/400x200?text=Tidak+Ada+Foto" }} 
-                            style={[styles.image, { width: sliderWidth > 0 ? sliderWidth : 400 }]} 
-                        />
+                        <View style={{ width: sliderWidth > 0 ? sliderWidth : Dimensions.get('window').width, height: '100%' }}>
+                            <Image 
+                                source={{ uri: "https://via.placeholder.com/400x200?text=Tidak+Ada+Foto" }} 
+                                style={{ width: '100%', height: '100%' }} 
+                                contentFit="cover"
+                            />
+                        </View>
                     )}
                 </ScrollView>
+
+                {Platform.OS === 'web' && images.length > 1 && (
+                    <>
+                        <TouchableOpacity 
+                            style={[styles.arrowButton, { left: 10 }]} 
+                            onPress={() => scrollToImage(Math.max(0, activeIndex - 1))}
+                            disabled={activeIndex === 0}
+                        >
+                            <Ionicons name="chevron-back" size={24} color={activeIndex === 0 ? "rgba(255,255,255,0.3)" : "white"} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.arrowButton, { right: 10 }]} 
+                            onPress={() => scrollToImage(Math.min(images.length - 1, activeIndex + 1))}
+                            disabled={activeIndex === images.length - 1}
+                        >
+                            <Ionicons name="chevron-forward" size={24} color={activeIndex === images.length - 1 ? "rgba(255,255,255,0.3)" : "white"} />
+                        </TouchableOpacity>
+                    </>
+                )}
 
                 {images.length > 1 && (
                     <View style={styles.paginationWrapper}>
                         {images.map((_: any, index: number) => (
-                            <View 
+                            <TouchableOpacity 
                                 key={index} 
-                                style={[
-                                    styles.dot, 
-                                    activeIndex === index ? styles.activeDot : styles.inactiveDot
-                                ]} 
-                            />
+                                onPress={() => scrollToImage(index)}
+                                style={{ padding: 5 }}
+                            >
+                                <View 
+                                    style={[
+                                        styles.dot, 
+                                        activeIndex === index ? styles.activeDot : styles.inactiveDot
+                                    ]} 
+                                />
+                            </TouchableOpacity>
                         ))}
                     </View>
                 )}
@@ -208,7 +261,9 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                             (comment: any, index: number) => {
                                 let commentImage = null
                                 if(comment.imageUrl){
-                                    commentImage  =`${process.env.EXPO_PUBLIC_API_URL}/${comment.imageUrl}`
+                                    commentImage = comment.imageUrl.startsWith('http') 
+                                        ? comment.imageUrl 
+                                        : `${process.env.EXPO_PUBLIC_API_URL}/${comment.imageUrl}`;
                                 }
 
                                 return (

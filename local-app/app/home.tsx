@@ -204,9 +204,9 @@ function Home() {
                         }}
                     />
                 )}
-                {!isSelectingLocation && (
+                {isSelectingLocation && (
                     <Button
-                        title={DetailModalVisible? "Close": "Tag details"}
+                        title="Close"
                         onPress={() => setDetailModalVisible(!DetailModalVisible)}
                     />
                 )}
