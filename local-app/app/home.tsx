@@ -41,7 +41,8 @@ function Home() {
     const [warningMessage, setWarningMessage] = useState("");
     const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
 
-    let [DetailModalMode, setDetailModalMode] = useState(false)
+    const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+    let [DetailModalVisible, setDetailModalVisible] = useState(false)
     let [searchLocation, setSearchLocation] = useState<any>(null)
     let [isSelectingLocation, setIsSelectingLocation] = useState(false)
     let [addModalVisible, setAddModalVisible] = useState(false)
@@ -131,6 +132,11 @@ function Home() {
         setIsSelectingLocation(true)
     }
 
+    function handleSelectTag(tag: any){
+        setSelectedTagId(tag.id)
+        setDetailModalVisible(true)
+    }
+
     function handlePickLocation(roadData: any){
         console.log('Masuk function handlePickLocation')
         setTempLocation(roadData)
@@ -164,6 +170,7 @@ function Home() {
                 targetLocation={searchLocation} 
                 onRoadSelect={handlePickLocation}
                 tags={allTags}
+                onTagSelect={handleSelectTag}
             />
             {isSelectingLocation? (
                 <Navbar 
@@ -199,8 +206,8 @@ function Home() {
                 )}
                 {!isSelectingLocation && (
                     <Button
-                        title={DetailModalMode? "Close": "Tag details"}
-                        onPress={() => setDetailModalMode(!DetailModalMode)}
+                        title={DetailModalVisible? "Close": "Tag details"}
+                        onPress={() => setDetailModalVisible(!DetailModalVisible)}
                     />
                 )}
             </View>
@@ -215,8 +222,12 @@ function Home() {
                 onTagAdded={loadAllTags}
             />
             <DetailModal
-                visible={DetailModalMode}
-                onClose={() => setDetailModalMode(!DetailModalMode)}
+                visible={DetailModalVisible}
+                onClose={() => {
+                    setDetailModalVisible(!DetailModalVisible)
+                    setSelectedTagId(null)
+                }}
+                tagId={selectedTagId}
             />
             <ConfirmModal
                 visible={confirmLocationVisible}

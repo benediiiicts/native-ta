@@ -65,5 +65,6 @@ async function fetchTagDetails(req, res){
 export {
     addNewTagRoad,
     addNewTagVersion,
-    fetchAllTags
+    fetchAllTags,
+    fetchTagDetails
 }

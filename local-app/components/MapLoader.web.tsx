@@ -17,7 +17,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[]}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[] }){
+function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagSelect}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any }){
     let [road, setRoad] = useState<any[]>([])
 
     useEffect(()=>{
@@ -89,8 +89,15 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[]}: { act
                     <Marker
                         key={tag.id}
                         position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
+                        eventHandlers={{
+                            click: () => onTagSelect(tag),
+                        }}
                     >
-                        <Popup>
+                        <Popup
+                            eventHandlers={{
+                                click: () => onTagSelect(tag),
+                            }}
+                        >
                             <b>{tag.issueType || tag.issue_type}</b> <br />
                             Klik untuk melihat detail.
                         </Popup>
