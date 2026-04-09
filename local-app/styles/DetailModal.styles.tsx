@@ -156,6 +156,30 @@ export const styles = StyleSheet.create({
         color: "#374151",
         marginLeft: 8,
     },
+    paginationWrapper: {
+        position: 'absolute',
+        bottom: 20,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginHorizontal: 4,
+    },
+    activeDot: {
+        backgroundColor: '#FFFFFF',
+        width: 10,
+        height: 10,
+    },
+    inactiveDot: {
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    },
     divider: {
         height: 1,
         backgroundColor: "#9CA3AF",
@@ -212,5 +236,6 @@ export const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: "#E5E7EB",
         marginTop: 5,
-    }
+    },
+    
 });
