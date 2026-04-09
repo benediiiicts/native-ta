@@ -1,5 +1,5 @@
-import {createTagRoad, getAllTags, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, updateTagVersion} from '../Services/TagService.js'
-import {saveImages} from '../Services/ImageService.js'
+import {createTagRoad, getAllTags, getTagDetail, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, updateTagVersion} from '../Services/TagService.js'
+import {saveImages} from '../Services/MediaService.js'
 
 async function addNewTagRoad(req, res){
     try{
@@ -36,13 +36,29 @@ async function fetchAllTags(req, res){
     try{
         const tags = await getAllTags()
         return res.status(tags.status).json({
-            status: 200,
+            status: tags.status,
             data: tags.data
         })
     }
     catch(error){
-        console.error(`Controller Error: ${error}`)
+        console.error(`Controller Error while fetching tags: ${error}`)
         return res.status(500).json({message: "Internal server error while fetching tags"})
+    }
+}
+
+async function fetchTagDetails(req, res){
+    try{
+        const tagId = req.params.id
+        const tagDetails = await getTagDetail(tagId)
+        return res.status(tagDetails.status).json({
+            status: tagDetails.status,
+            data: tagDetails.data,
+            message: tagDetails.message
+        })   
+    }
+    catch(error){
+        console.error(`Controller error while fetching tag details: ${error}`)
+        return res.status(500).json({message: "Internal server error while fetching tag details"})
     }
 }
 
