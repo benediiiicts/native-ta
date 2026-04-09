@@ -124,6 +124,11 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
             showWarning("Data Tidak Lengkap", "Mohon lengkapi lokasi, tipe tag, dan deskripsi terlebih dahulu.");
             return;
         }
+
+        if (tempImages.length === 0) {
+            showWarning("Foto Bukti Diperlukan", "Mohon unggah minimal 1 foto sebagai bukti laporan kondisi jalan.");
+            return;
+        }
         
         setIsLoading(true)
         try{

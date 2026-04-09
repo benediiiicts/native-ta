@@ -47,7 +47,7 @@ const comments = sequelize.define('Comment',
         },
         imageUrl:{
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         }
     },{
         tableName: 'comments',
