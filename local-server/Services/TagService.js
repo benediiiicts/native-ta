@@ -1,11 +1,13 @@
-import {tagRoads, tagVersions} from "../Models/TagModel.js"
+import { tagRoads, tagVersions } from '../Models/TagModel.js';
+import { user } from '../Models/UserModel.js';
+import { versionImages, comments } from '../Models/MediaModel.js';
 import { Op } from "sequelize";
-import { sequelize } from "../database.js";
-import { saveImages } from "./ImageService.js";
+import sequelize from "../database.js";
+import { saveImages } from "./MediaService.js";
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
-    const maxDistance = 5 //5 meter
+    const maxDistance = 10 //10 meter
 
     const distanceQuery = sequelize.literal(`
         ( ${earthRadius} * acos( 
@@ -47,7 +49,7 @@ async function checkRoadRadius(_latitude, _longitude){
 }
 
 // TAG ROAD
-async function createTagRoad(_userId, _latitude, _longitude, _status, _description, _forceCreate = false, _images){
+async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _issueType, _description, _forceCreate = false, _images){
     if(!_forceCreate){
         let tagExist = await checkRoadRadius(_latitude, _longitude)
 
@@ -61,20 +63,27 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
             const newRoad = await tagRoads.create({
                 latitude: _latitude,
                 longitude: _longitude,
-                isHidden: false
+                isHidden: false,
+                roadClass: _roadClass,
+                issueType: _issueType,
             }, {transaction: t})
 
             const newVersion = await tagVersions.create({
                 tagRoadId: newRoad.id,
                 userId: _userId,
-                status: _status,
+                status: "Menunggu Tindakan",
                 description: _description,
                 score: 0,
                 isVerified: false
             }, {transaction: t})
 
+            await newRoad.update({
+                activeVersionId: newVersion.id
+            }, {transaction: t})
+
             let savedImages = []
             if(_images && _images.length > 0){
+                console.log("images available")
                 savedImages = await saveImages(newVersion.id, _images, t)
             }
             return {
@@ -91,7 +100,7 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
         }
     }
     catch(error){
-        console.log(`Transaction error while creating tag road: ${error} `)
+        console.error(`Transaction error while creating tag road: ${error} `)
         if(error.status){
             return {
                 status: error.status,
@@ -106,7 +115,81 @@ async function createTagRoad(_userId, _latitude, _longitude, _status, _descripti
 }
 
 async function getTagRoad(_tagRoadId){
-    return await tagRoads.findByPk(_tagRoadId)
+    try{
+        const fetchRoad = await tagRoads.findByPk(_tagRoadId)
+        return {
+            data: fetchRoad,
+            status: 200
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching tag ${error}`)
+        return{
+            status: 500,
+            message: "Failed to fetch tag due to server error"
+        }
+    }
+}
+
+async function getTagDetail(_tagId){
+    try{
+        const detail = await tagRoads.findOne({
+            where: {id: _tagId, isHidden: false},
+            include:[
+                {
+                    model: tagVersions,
+                    as: 'activeVersion',
+                    include:[
+                        {model: user, as: 'author', attributes: ['id', 'username']},
+                        {model: versionImages, as: 'images', attributes: ['imageUrl']}, 
+                        {
+                            model: comments,
+                            as: 'comments', 
+                            include: [{ model: user, as: 'commentAuthor', attributes: ['username'] }]
+                        }
+                    ]
+                }
+            ]
+        })
+
+        if (!detail) {
+            return {
+                status: 404,
+                data: null,
+                message: "Data laporan jalan tidak ditemukan."
+            }
+        }
+
+        return {
+            status: 200,
+            data: detail,
+            message: "Tag detail successfully fetched"
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching tag details ${error}`)
+        error.status = 500; 
+        throw error
+    }
+}
+
+async function getAllTags(){
+    try{
+        const fetchTags = await tagRoads.findAll({
+            where: {is_hidden: false}
+        })
+        return {
+            data: fetchTags,
+            status: 200
+        } 
+    }
+    catch(error){
+        console.error(`Error while fetching tag ${error}`)
+        return{
+            status: 500,
+            message: "Failed to fetch tags due to server error"
+        }
+    }
 }
 
 async function deleteTagRoad(){
@@ -183,6 +266,8 @@ async function updateTagVersion(){
 export {
     createTagRoad, 
     getTagRoad,
+    getTagDetail,
+    getAllTags,
     deleteTagRoad,
     updateTagRoad,
     createTagVersion, 

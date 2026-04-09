@@ -12,6 +12,7 @@ interface AddTagModalProps {
     onClose: () => void;
     onPickLocation: () => void;
     selectedLocation: any;
+    onTagAdded?: () => void;
 }
 
 async function getStorageValue(key: string){
@@ -27,9 +28,23 @@ async function getStorageValue(key: string){
     }
 }
 
-const TAG_TYPES = ['Jalan berlubang', 'Fasilitas rusak']
+export const TAG_TYPES = [
+    'Jalan Rusak',           
+    'Fasilitas Jalan Rusak', 
+    'Genangan Air / Banjir', 
+    'Hambatan Jalan',        
+    'Kecelakaan Lalu Lintas',
+    'Penutupan / Proyek Jalan'
+];
 
-function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: AddTagModalProps) {
+export const TAG_STATUSES = [
+    'Menunggu Tindakan',    
+    'Dalam Penanganan',     
+    'Sudah Diperbaiki',     
+    'Kedaluwarsa / Tidak Valid'
+];
+
+function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded }: AddTagModalProps) {
     const tokenKey = 'userToken';
    
     const [description, setDescription] = useState("");
@@ -78,11 +93,19 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
         });
 
         if (!result.canceled) {
+            const selectedFile = result.assets[0];
+            const mimeType = selectedFile.mimeType || 'image/jpeg';
+
+            if (!mimeType.startsWith('image/')) {
+                showWarning("File Ditolak", "Format file tidak didukung. Mohon hanya unggah file gambar.");
+                return;
+            }
+
             if(tempImages.length >= 3){
                 showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
                 return;
             }
-            setTempImages([...tempImages, result.assets[0]])
+            setTempImages([...tempImages, selectedFile]);
         }
     }
 
@@ -97,8 +120,13 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
             return;
         }
 
-        if(!selectedLocation || !tagType || !description){
+        if(!selectedLocation || !tagType || !description.trim()){
             showWarning("Data Tidak Lengkap", "Mohon lengkapi lokasi, tipe tag, dan deskripsi terlebih dahulu.");
+            return;
+        }
+
+        if (tempImages.length === 0) {
+            showWarning("Foto Bukti Diperlukan", "Mohon unggah minimal 1 foto sebagai bukti laporan kondisi jalan.");
             return;
         }
         
@@ -107,17 +135,31 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
             const formData = new FormData();
             formData.append("latitude", selectedLocation.latitude.toString())
             formData.append("longitude", selectedLocation.longitude.toString())
-            formData.append("status", tagType)
+            formData.append("roadClass", selectedLocation.roadClass || 'Unclassified')
+            formData.append("issueType", tagType);
             formData.append("description", description)
             formData.append("forceCreate", forceCreate ? "true" : "false")
         
-            tempImages.forEach((image, index) => {
-                formData.append("images", {
-                    uri: image.uri,
-                    name: `image_${Date.now()}_${index}.jpg`,
-                    type: "image/jpeg",
-                } as any);
-            });
+            for(let index = 0; index < tempImages.length; index++){
+                const image = tempImages[index];
+                
+                const mimeType = image.mimeType || 'image/jpeg';
+                const fileExtension = mimeType.split('/')[1] || 'jpg';
+            
+                const fileName = image.fileName || `image_${Date.now()}_${index}.${fileExtension}`;
+
+                if(Platform.OS === 'web'){
+                    const imgResponse = await fetch(image.uri);
+                    const blob = await imgResponse.blob();
+                    formData.append("images", blob, fileName);
+                }
+                else{
+                    formData.append("images", {
+                        uri: image.uri,
+                        type: mimeType,
+                    } as any);
+                }
+            }
 
             const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads`;
             const response = await fetch(apiUrl, {
@@ -133,6 +175,9 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
             if(jsonResponse.status === 201){
                 showWarning("Sukses", "Laporan jalan rusak berhasil dibuat!", () => {
                     setWarningVisible(false);
+                    if(onTagAdded){
+                        onTagAdded()
+                    }
                     resetForm();
                 });
             }
@@ -178,7 +223,14 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation }: Add
             >
             <View style={styles.modalContainer}>
                 
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <TouchableOpacity 
+                    style={styles.closeButton} 
+                    onPress={()=>{
+                        setDescription('')
+                        setTagType('')
+                        setTempImages([])
+                        onClose()
+                    }}>
                     <Ionicons name="close-circle" size={28} color="#333" />
                 </TouchableOpacity>
 

@@ -48,4 +48,35 @@ const user = sequelize.define('User',
     }
 )
 
-export {user}
+const userVotes = sequelize.define('UserVote', 
+    {
+        id:{
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        userId:{
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        tagVersionId:{
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
+        voteType:{
+            type: DataTypes.ENUM('Approve', 'Reject'),
+            allowNull: true
+        }        
+    },{
+        tableName: 'user_votes',
+        underscored: true,
+        timestamps: true,
+        updatedAt: false
+    }
+)
+
+export {
+    user,
+    userVotes
+}

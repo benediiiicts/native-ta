@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import MapView, { Polyline, UrlTile, type Region } from "react-native-maps";
+import { StyleSheet, View } from "react-native";
+import MapView, { Marker, Polyline, UrlTile, type Region } from "react-native-maps";
 
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
@@ -12,7 +12,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
         way["highway"](${s}, ${w}, ${n}, ${e});
         out geom;
     `;
-    let url_overpass = `https://maps.mail.ru/osm/tools/overpass/api/interpreter?data=${encodeURIComponent(query)}`;
+    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
         let response = await fetch(url_overpass);
@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any}) {
+function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
@@ -115,8 +115,14 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                     }));
 
                     let roadName = 'Unknown';
-                    if(way.tags && way.tags.name){
-                        roadName = way.tags.name
+                    let roadClass = 'Unclassified'
+                    if(way.tags){
+                        if(way.tags.name){
+                            roadName = way.tags.name   
+                        }
+                        if(way.tags.highway){
+                            roadClass = way.tags.highway;
+                        }
                     }
 
                     return (
@@ -132,11 +138,26 @@ function Map({ active, targetLocation=false, onRoadSelect }: {active: boolean; t
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
+                                        roadClass: roadClass,
                                         latitude: e.nativeEvent.coordinate?.latitude,
                                         longitude: e.nativeEvent.coordinate?.longitude
                                     })
                                 }
                             }}
+                        />
+                    );
+                })}
+                {tags.map((tag) => {
+                    return (
+                        <Marker
+                            key={tag.id}
+                            coordinate={{
+                                latitude: parseFloat(tag.latitude),
+                                longitude: parseFloat(tag.longitude),
+                            }}
+                            title={tag.issueType || tag.issue_type}
+                            description="Klik untuk melihat detail"
+                            onPress={() => onTagSelect(tag)}
                         />
                     );
                 })}

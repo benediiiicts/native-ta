@@ -1,15 +1,16 @@
 // components/Modals/WarningModal.tsx
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import styles from '@/styles/ConfirmationModal.style';
 
 interface WarningModalProps {
     visible: boolean;
     title: string;
     message: string;
-    onCancel: ()=> void,
+    onCancel: () => void;
     onConfirm: () => void;
-    confirmText?: string;  // Opsional, default: "Ya"
+    confirmText?: string;
+    cancelText?: string; 
 }
 
 function WarningModal({ 
@@ -18,7 +19,8 @@ function WarningModal({
     message,
     onCancel,
     onConfirm,
-    confirmText = "Ya"
+    confirmText = "Ya",
+    cancelText = "Batal"
 }: WarningModalProps) {
     return (
         <Modal
@@ -34,7 +36,14 @@ function WarningModal({
 
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity 
-                            style={[styles.destructiveBtn]} 
+                            style={[styles.button, styles.cancelBtn]} 
+                            onPress={onCancel}
+                        >
+                            <Text style={styles.cancelText}>{cancelText}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.button, styles.primaryBtn]} 
                             onPress={onConfirm}
                         >
                             <Text style={styles.confirmText}>{confirmText}</Text>

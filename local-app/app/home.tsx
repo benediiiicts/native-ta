@@ -1,12 +1,13 @@
 import { View, Button, Platform, Alert} from "react-native";
 import Map from '../components/Map';
 import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import Navbar from '../components/Navbar';
 import DetailModal from "../components/Modals/DetailModal";
-import LogoutModal from "@/components/Modals/LogoutModal";
 import AddTagModal from "@/components/Modals/AddTagModal";
 import ConfirmModal from "@/components/Modals/ConfirmationModal";
 import * as SecureStore from 'expo-secure-store';
+import WarningModal from "@/components/Modals/WarningModal";
 
 async function getStorageValue(key: string){
     if (Platform.OS === 'web') {
@@ -22,15 +23,26 @@ async function getStorageValue(key: string){
 }
 
 function Home() {
+    const router = useRouter()
     const tokenKey = 'userToken';
 
     let [isLogedIn, setisLogedIn] = useState(false)
+
+    //tags
+    const [allTags, setAllTags] = useState<any[]>([])
 
     //state untuk modal konfirmasi
     let [confirmLocationVisible, setConfirmLocationVisible] = useState(false);
     let [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
 
-    let [DetailModalMode, setDetailModalMode] = useState(false)
+    //untuk modal warning
+    const [warningVisible, setWarningVisible] = useState(false);
+    const [warningTitle, setWarningTitle] = useState("");
+    const [warningMessage, setWarningMessage] = useState("");
+    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+
+    const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+    let [DetailModalVisible, setDetailModalVisible] = useState(false)
     let [searchLocation, setSearchLocation] = useState<any>(null)
     let [isSelectingLocation, setIsSelectingLocation] = useState(false)
     let [addModalVisible, setAddModalVisible] = useState(false)
@@ -49,6 +61,10 @@ function Home() {
         checkLogin()
     }, [])
 
+    useEffect(() => {
+        loadAllTags()
+    }, [])
+
     async function handleLogout(){
         if(Platform.OS == 'web'){
             try{
@@ -64,6 +80,36 @@ function Home() {
         }
         setisLogedIn(false)
         setConfirmLogoutVisible(false)
+    }
+
+    function showWarning(title: string, message: string, onConfirmAction?: () => void){
+        setWarningTitle(title);
+        setWarningMessage(message);
+
+        if (onConfirmAction) {
+            setWarningOnConfirm(() => () => {
+                setWarningVisible(false)
+                onConfirmAction() 
+            });
+        } else {
+            setWarningOnConfirm(() => () => setWarningVisible(false))
+        }
+        
+        setWarningVisible(true)
+    }
+
+    async function loadAllTags(){
+        try{
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/fetch-all`
+            const response = await fetch(apiUrl)
+            const jsonResponse = await response.json()
+            if(jsonResponse.status == 200){
+                setAllTags(jsonResponse.data)
+            }
+        }
+        catch(error){
+            console.error(`Gagal memuat data tag: ${error}`)
+        }
     }
 
     function handleLocationSearch(data: any[]){
@@ -86,8 +132,13 @@ function Home() {
         setIsSelectingLocation(true)
     }
 
+    function handleSelectTag(tag: any){
+        setSelectedTagId(tag.id)
+        setDetailModalVisible(true)
+    }
+
     function handlePickLocation(roadData: any){
-        if(!isSelectingLocation) return
+        console.log('Masuk function handlePickLocation')
         setTempLocation(roadData)
         setConfirmLocationVisible(true)
     }
@@ -104,11 +155,37 @@ function Home() {
         setConfirmLocationVisible(false)
     }
 
+    function handleNotLoggedIn(){
+        showWarning(
+            'Anda belum login', 
+            'Login/ register untuk melakukan aksi', 
+            () => router.push('/login')
+        )
+    }
+
     return (
         <View style={{ flex: 1 }}>
-            <Map active={isSelectingLocation} targetLocation={searchLocation} onRoadSelect={handlePickLocation}/>
-            {isSelectingLocation && (
-                <Navbar login={isLogedIn} onLogout={() => setConfirmLocationVisible(true)} onSearchResults={handleLocationSearch}/>
+            <Map 
+                active={isSelectingLocation} 
+                targetLocation={searchLocation} 
+                onRoadSelect={handlePickLocation}
+                tags={allTags}
+                onTagSelect={handleSelectTag}
+            />
+            {isSelectingLocation? (
+                <Navbar 
+                    login={isLogedIn} 
+                    onLogout={() => setConfirmLogoutVisible(true)} 
+                    onSearchResults={handleLocationSearch}
+                    onPickLocationMode={true}
+                />
+            ):(
+                <Navbar 
+                    login={isLogedIn} 
+                    onLogout={() => setConfirmLogoutVisible(true)} 
+                    onSearchResults={handleLocationSearch}
+                    onPickLocationMode={false}
+                />
             )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
                 {isSelectingLocation? (
@@ -116,33 +193,41 @@ function Home() {
                         title="Cancel"
                         onPress={()=>{
                             setIsSelectingLocation(false)
-                            setAddModalVisible(true)
+                            setAddModalVisible(false)
                         }}
                     />
                 ):(
                     <Button
                         title="Add Tag"
                         onPress={()=>{
-                            setAddModalVisible(false)
+                            (isLogedIn? setAddModalVisible(true): handleNotLoggedIn())
                         }}
                     />
                 )}
                 {!isSelectingLocation && (
                     <Button
-                        title={DetailModalMode? "Close": "Tag details"}
-                        onPress={() => setDetailModalMode(!DetailModalMode)}
+                        title={DetailModalVisible? "Close": "Tag details"}
+                        onPress={() => setDetailModalVisible(!DetailModalVisible)}
                     />
                 )}
             </View>
             <AddTagModal
                 visible={addModalVisible}
-                onClose={() => {setAddModalVisible(false)}}
+                onClose={() => {
+                    setAddModalVisible(false)
+                    setPickedLocation(null)
+                }}
                 onPickLocation={selectLocation}
                 selectedLocation={pickedLocation}
+                onTagAdded={loadAllTags}
             />
             <DetailModal
-                visible={DetailModalMode}
-                onClose={() => setDetailModalMode(!DetailModalMode)}
+                visible={DetailModalVisible}
+                onClose={() => {
+                    setDetailModalVisible(!DetailModalVisible)
+                    setSelectedTagId(null)
+                }}
+                tagId={selectedTagId}
             />
             <ConfirmModal
                 visible={confirmLocationVisible}
@@ -161,6 +246,14 @@ function Home() {
                 isDestructive={true}
                 onConfirm={handleLogout}
                 onCancel={()=>setConfirmLogoutVisible(false)}
+            />
+            <WarningModal
+                visible={warningVisible}
+                title={warningTitle}
+                message={warningMessage}
+                confirmText="Login"
+                onConfirm={warningOnConfirm}
+                onCancel={() => setWarningVisible(false)}
             />
         </View>
     );

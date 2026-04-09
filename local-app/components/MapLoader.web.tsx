@@ -1,11 +1,23 @@
+import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+
+let DefaultIcon = L.icon({
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: boolean; targetLocation?: any; onRoadSelect: any }){
+function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagSelect}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any }){
     let [road, setRoad] = useState<any[]>([])
 
     useEffect(()=>{
@@ -35,10 +47,16 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                 let coordinates = way.geometry.map((pos: any) => [pos.lat, pos.lon]);
 
                 let roadName = 'Unknown'
+                let roadClass = 'Unclassified'
                 if(way.tags && way.tags.name){
-                    roadName = way.tags.name
+                    if(way.tags.name){
+                        roadName = way.tags.name
+                    }
+                    if(way.tags.highway){
+                        roadClass = way.tags.highway
+                    }
                 }
-                console.log(coordinates)
+                // console.log(coordinates)
 
                 return (
                     <Polyline 
@@ -46,14 +64,17 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                         positions={coordinates}
                         pathOptions={{ 
                             color: 'rgba(0, 100, 255, 0.6)', 
-                            weight: 5 
+                            weight: 10,
+                            interactive: true 
                         }}
                         eventHandlers={{
                             click: (e) => {
-                                if(active && onRoadSelect){
+                                console.log("Garis jalan ditekan!", roadName);
+                                if(onRoadSelect){
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
+                                        roadClass: roadClass,
                                         latitude: e.latlng.lat,
                                         longitude: e.latlng.lng
                                     })
@@ -61,6 +82,26 @@ function MapLoader({ active, targetLocation=false, onRoadSelect}: { active: bool
                             }
                         }}
                     />
+                )
+            })}
+            {tags.map((tag)=>{
+                return(
+                    <Marker
+                        key={tag.id}
+                        position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
+                        eventHandlers={{
+                            click: () => onTagSelect(tag),
+                        }}
+                    >
+                        <Popup
+                            eventHandlers={{
+                                click: () => onTagSelect(tag),
+                            }}
+                        >
+                            <b>{tag.issueType || tag.issue_type}</b> <br />
+                            Klik untuk melihat detail.
+                        </Popup>
+                    </Marker>
                 )
             })}
         </MapContainer>
@@ -74,7 +115,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number){
     way["highway"](${s}, ${w}, ${n}, ${e});
     out geom;
     `;
-    let url_overpass = `https://maps.mail.ru/osm/tools/overpass/api/interpreter?data=${encodeURIComponent(query)}`;
+    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
         let response = await fetch(url_overpass);
@@ -105,7 +146,7 @@ function RegionTrack({ onRegionChange, active }: { onRegionChange: any; active: 
 
     useEffect(()=>{
         if(active){
-            map.setZoom(18, {animate: true})
+            map.setZoom(19, {animate: true})
         }
     }, [active, map])
 

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles/Navbar.styles';
 import { useRouter } from 'expo-router';
 
-function Navbar({ login, onLogout, onSearchResults }: { login: boolean; onLogout: () => void; onSearchResults: (data: any[]) => void}) {
+function Navbar({ login, onLogout, onSearchResults, onPickLocationMode }: { login: boolean; onLogout: () => void; onSearchResults: (data: any[]) => void; onPickLocationMode: boolean}) {
     let router = useRouter();
     let [searchLocation, setSearchLocation] = useState('');
     let [errorMessage, setErrorMessage] = useState('');
@@ -87,7 +87,7 @@ function Navbar({ login, onLogout, onSearchResults }: { login: boolean; onLogout
                             keyExtractor={(item) => item.place_id.toString()}
                             keyboardShouldPersistTaps="handled"
                             renderItem={({ item }) => (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.dropdownItem}
                                     onPress={() => handleLocationSelect(item)}
                                 >
@@ -102,7 +102,7 @@ function Navbar({ login, onLogout, onSearchResults }: { login: boolean; onLogout
                 )}
             </View>
             
-            {!isDropdownVisible && (
+            {!onPickLocationMode && !isDropdownVisible && (
                 login ? (
                     <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
                         <Text style={styles.loginText}>Logout</Text>
