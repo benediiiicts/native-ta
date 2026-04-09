@@ -180,6 +180,18 @@ export const styles = StyleSheet.create({
     inactiveDot: {
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
     },
+    arrowButton: {
+        position: 'absolute',
+        top: '50%',
+        marginTop: -15,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
     divider: {
         height: 1,
         backgroundColor: "#9CA3AF",
