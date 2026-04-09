@@ -107,7 +107,7 @@ function Home() {
             }
         }
         catch(error){
-            console.error(`Gagal memuat data tag ${error}`)
+            console.error(`Gagal memuat data tag: ${error}`)
         }
     }
 
@@ -206,9 +206,13 @@ function Home() {
             </View>
             <AddTagModal
                 visible={addModalVisible}
-                onClose={() => {setAddModalVisible(false)}}
+                onClose={() => {
+                    setAddModalVisible(false)
+                    setPickedLocation(null)
+                }}
                 onPickLocation={selectLocation}
                 selectedLocation={pickedLocation}
+                onTagAdded={loadAllTags}
             />
             <DetailModal
                 visible={DetailModalMode}

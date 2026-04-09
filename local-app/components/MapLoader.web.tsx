@@ -4,9 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 let DefaultIcon = L.icon({
-    iconUrl: require('leaflet/dist/images/marker-icon.png').default,
-    shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
-    iconAnchor: [12, 41]
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
@@ -70,7 +74,7 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[]}: { act
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
-                                        roadName: way.tags.highway,
+                                        roadClass: roadClass,
                                         latitude: e.latlng.lat,
                                         longitude: e.latlng.lng
                                     })
@@ -104,7 +108,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number){
     way["highway"](${s}, ${w}, ${n}, ${e});
     out geom;
     `;
-    let url_overpass = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
         let response = await fetch(url_overpass);

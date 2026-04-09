@@ -1,4 +1,4 @@
-import { versionImages } from "../Models/ImageModel.js";
+import { versionImages } from "../Models/MediaModel.js";
 
 async function saveImages(_tagVersionId, _images, t) {
     let createdImages = []
