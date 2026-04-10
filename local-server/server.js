@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import cron from 'node-cron'
 import userRouter from './Routes/UserRoutes.js'
 import tagRouter from './Routes/TagRoutes.js'
 import sequelize from './database.js'
@@ -25,6 +26,13 @@ app.use('/api/users', userRouter)
 app.use('/api/tags', tagRouter)
 
 app.use('/uploads', express.static('uploads'));
+
+//cron -> untuk update skor secara berkala
+//belum tentu dipakai
+// cron.schedule('0 * * * *', async () => {
+//     console.log("Menjalankan kalkulasi ulang skor relevansi...");
+//     await updateAllTagScores();
+// });
 
 app.listen(port, async ()=>{
     try {

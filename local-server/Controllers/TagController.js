@@ -1,4 +1,4 @@
-import {createTagRoad, getAllTags, getTagDetail, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, updateTagVersion} from '../Services/TagService.js'
+import {createTagRoad, getAllTags, getTagDetail, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, voteTagVersion} from '../Services/TagService.js'
 import {saveImages} from '../Services/MediaService.js'
 
 async function addNewTagRoad(req, res){
@@ -62,9 +62,33 @@ async function fetchTagDetails(req, res){
     }
 }
 
+async function handleVote(req, res){
+    try{
+        const userId = req.user.id
+        const tagId = req.params.id
+        const {voteType} = req.body
+    
+        if(!['Approve', 'Reject'].includes(voteType)){
+            return res.status(404).json({
+                message: "Invalid vote type"
+            })
+        }
+
+        const voteResult = await voteTagVersion(userId, tagId, voteType)
+        return res.status(voteResult.status).json(voteResult)
+    }
+    catch(error){
+        console.error(`Error while processing vote: ${error}`)
+        return res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
 export {
     addNewTagRoad,
     addNewTagVersion,
     fetchAllTags,
-    fetchTagDetails
+    fetchTagDetails,
+    handleVote
 }
