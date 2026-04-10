@@ -1,5 +1,5 @@
 import { tagRoads, tagVersions } from '../Models/TagModel.js';
-import { user } from '../Models/UserModel.js';
+import { user, userVotes } from '../Models/UserModel.js';
 import { versionImages, comments } from '../Models/MediaModel.js';
 import { Op } from "sequelize";
 import sequelize from "../database.js";
@@ -117,7 +117,7 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _issueT
 async function getTagRoad(_tagRoadId){
     try{
         const fetchRoad = await tagRoads.findByPk(_tagRoadId,{
-            where: {is_hidden: false}
+            where: {isHidden: false}
         })
         if(fetchRoad){
             return {
@@ -184,7 +184,7 @@ async function getTagDetail(_tagId){
 async function getAllTags(){
     try{
         const fetchTags = await tagRoads.findAll({
-            where: {is_hidden: false}
+            where: {isHidden: false}
         })
         return {
             data: fetchTags,
@@ -272,21 +272,81 @@ async function deleteTagVersion(){
     
 }
 
-async function voteTagVersion(_tagId, _voteType){
+async function voteTagVersion(_userId, _tagId, _voteType){
     try{
-        const version = await tagVersions.findByPk(_tagId, {
-            where: {is_hidden: false}
+        const result = await sequelize.transaction(async (t) => {
+            const existingVote = await userVotes.findOne({
+                where: {userId: _userId, tagVersionId: _tagId},
+                transaction: t
+            })
+
+            const version = await tagVersions.findByPk(_tagId, {transaction: t})
+            if(!version){
+                const error = new Error("Version not found")
+                error.status = 404
+                throw error
+            }
+            if(existingVote){
+                if(existingVote.voteType == _voteType){
+                    await existingVote.destroy({transaction: t})
+                    if (_voteType === 'Approve') {
+                        await version.decrement('approveCount', { transaction: t });
+                    } else if (_voteType === 'Reject') {
+                        await version.decrement('rejectCount', { transaction: t });
+                    }
+                    return { 
+                        status: 200, 
+                        message: "Vote removed", 
+                        currentVote: null 
+                    };
+                }
+                else{
+                    await existingVote.update({voteType: _voteType}, {transaction: t})
+                    if(_voteType == 'Approve'){
+                        await version.increment('approveCount', {transaction: t})
+                        await version.decrement('rejectCount', { transaction: t });
+                    }
+                    else if(_voteType == 'Reject'){
+                         await version.decrement('approveCount', {transaction: t})
+                        await version.increment('rejectCount', { transaction: t });
+                    }
+                    return{
+                        status: 200,
+                        message: "Vote updated",
+                        currentVote: _voteType
+                    }
+                }
+            }
+            else{
+                await userVotes.create({
+                    userId: _userId,
+                    tagVersionId: _tagId,
+                    voteType: _voteType
+                }, {transaction: t})
+
+                if(_voteType == 'Approve'){
+                    await version.increment('approveCount', {transaction: t})
+                }
+                else if (_voteType == 'Reject'){
+                    await version.increment('rejectCount', {transaction: t})
+                }
+
+                return { 
+                    status: 201, 
+                    message: "Vote added", 
+                    currentVote: _voteType 
+                };
+            }
         })
-        if(version){
-            const approve = version.approveCount
-            const reject = version.rejectCount
-            (_voteType == 'Approve')? approve+=1 : reject+=1;
-            const totalVotes = approve + reject
-            const reliability = Math.round((approve/ totalVotes)*100)
-        }
+
+        return result
     }
     catch(error){
-
+        console.error(`Error while processing vote ${error}`)
+        return{
+            status: error.status || 500,
+            message: error.message || "Internal server error while processing vote"
+        }
     }
 }
 
@@ -300,5 +360,5 @@ export {
     createTagVersion, 
     getTagVersion,
     deleteTagVersion,
-    updateTagVersion
+    voteTagVersion
 }

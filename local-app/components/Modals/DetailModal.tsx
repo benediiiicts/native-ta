@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Modal, Pressable, Platform, Dimensions } from "react-native";
-import { Image } from "expo-image";
-import { Ionicons, FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { styles } from "@/styles/DetailModal.styles";
+import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useRef, useState } from "react";
+import { Dimensions, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import WarningModal from "@/components/Modals/WarningModal";
 
 interface DetailModalProps {
     visible: boolean;
@@ -10,7 +12,22 @@ interface DetailModalProps {
     tagId: number | null;
 }
 
+async function getStorageValue(key: string){
+    if (Platform.OS === 'web') {
+        try {
+            return localStorage.getItem(key);
+        } catch (error) {
+            console.error(`Local storage is unavailable: ${error}`);
+            return null;
+        }
+    } else {
+        return await SecureStore.getItemAsync(key);
+    }
+}
+
 function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
+    const tokenKey = 'userToken';
+
     const [isLoading, setIsLoading] = useState(false)
     const [tagData, setTagData] = useState<any>(null)
 
@@ -21,7 +38,16 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     //untuk komentar
     const [commentMode, setCommentMode] = useState(false)
     const [newComment, setNewComment] = useState('')
-    
+
+    //untuk vote
+    const [isVoting, setIsVoting] = useState(false)
+
+    //untuk warning modal
+    const [warningVisible, setWarningVisible] = useState(false);
+    const [warningTitle, setWarningTitle] = useState("");
+    const [warningMessage, setWarningMessage] = useState("");
+    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+
     const scrollViewRef = useRef<ScrollView>(null);
 
     useEffect(()=>{
@@ -34,6 +60,19 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             setActiveIndex(0)
         }
     }, [visible, tagId])
+
+    function showWarning(title: string, message: string, onConfirmAction?: () => void){
+        setWarningTitle(title);
+        setWarningMessage(message);
+
+        if (onConfirmAction) {
+            setWarningOnConfirm(() => onConfirmAction);
+        } else {
+            setWarningOnConfirm(() => () => setWarningVisible(false));
+        }
+        
+        setWarningVisible(true);
+    }
 
     async function fetchTagDetail(){
         setIsLoading(true)
@@ -49,6 +88,45 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             console.error(error)
         } finally{
             setIsLoading(false)
+        }
+    }
+
+    async function submitVote(voteType: 'Approve' | 'Reject'){
+        const token = await getStorageValue(tokenKey)
+        if(!token){
+            showWarning("Akses Ditolak", "Silakan login terlebih dahulu untuk memberikan suara.");
+            return
+        }
+
+        setIsVoting(true)
+        try{
+            const activeVersionId = tagData?.activeVersion?.id
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-version/${activeVersionId}/vote`
+
+            const response = await fetch(apiUrl, 
+                {
+                    method: 'POST',
+                    headers:{
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({voteType})
+                }
+            )
+
+            const jsonResponse = await response.json()
+            if(jsonResponse.status == 200 || jsonResponse.status == 201){
+                fetchTagDetail()
+            }
+            else{
+                showWarning("Gagal", jsonResponse.message || "Gagal melakukan vote.");
+            }
+        }
+        catch(error){
+            console.error(`Voting error ${error}`)
+            showWarning("Error Jaringan", "Terjadi kesalahan saat menghubungi server. Pastikan internet Anda stabil.");
+        } finally{
+            setIsVoting(false)
         }
     }
 
@@ -215,10 +293,18 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                 </View>
 
                 <View style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.outlineButton}>
+                    <TouchableOpacity 
+                        style={[styles.outlineButton, isVoting && { opacity: 0.5 }]}
+                        onPress={() => submitVote('Approve')}
+                        disabled={isVoting}
+                    >
                         <Text style={styles.outlineButtonText}>Approve</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.outlineButton}>
+                    <TouchableOpacity 
+                        style={[styles.outlineButton, isVoting && { opacity: 0.5 }]}
+                        onPress={() => submitVote('Reject')}
+                        disabled={isVoting}
+                    >
                         <Text style={styles.outlineButtonText}>Reject</Text>
                     </TouchableOpacity>
                 </View>
@@ -310,6 +396,15 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             <Pressable style={styles.overlay} onPress={handleClose}>
                 <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
                     {commentMode ? renderComments() : renderDetails()}
+
+                    <WarningModal
+                        visible={warningVisible}
+                        title={warningTitle}
+                        message={warningMessage}
+                        confirmText="OK"
+                        onConfirm={warningOnConfirm}
+                        onCancel={() => setWarningVisible(false)}
+                    />
                 </Pressable>
             </Pressable>
         </Modal>
