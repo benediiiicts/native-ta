@@ -3,7 +3,7 @@ import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@
 import { Image } from "expo-image";
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, TextInput, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import WarningModal from "@/components/Modals/WarningModal";
 
 interface DetailModalProps {
@@ -36,8 +36,13 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [sliderWidth, setSliderWidth] = useState(0)
 
     //untuk komentar
+    const [tagComments, setTagComments] = useState<any[]>([])
     const [commentMode, setCommentMode] = useState(false)
     const [newComment, setNewComment] = useState('')
+    const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+    const [isReloadingComments, setIsReloadingComments] = useState(false);
+    const [tempCommentImage, setTempCommentImage] = useState<any>(null);
+    
 
     //untuk vote
     const [isVoting, setIsVoting] = useState(false)
@@ -77,17 +82,108 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     async function fetchTagDetail(){
         setIsLoading(true)
         try{
+            const token = await getStorageValue(tokenKey)
             const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads/${tagId}/detail`
-            const response = await fetch(apiUrl)
+            const headers: any = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(apiUrl, {headers})
             const jsonResponse = await response.json()
             if(jsonResponse.data){
                 setTagData(jsonResponse.data)
+                setTagComments(jsonResponse.data.activeVersion?.comments || [])
             }
         }
         catch(error){
             console.error(error)
         } finally{
             setIsLoading(false)
+        }
+    }
+
+    async function reloadComments(){
+        setIsReloadingComments(true)
+        const tagId = tagData?.activeVersion?.id
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-version/${tagId}/comment`
+
+        try{
+            const response = await fetch(apiUrl)
+            const jsonResponse = await response.json()
+            if(jsonResponse.data){
+                setTagComments(jsonResponse.data)
+            }
+        }
+        catch(error){
+            console.error(error)
+            showWarning("Gagal memuat komentar", "Silahkan cek jaringan anda")
+        }
+        finally{
+            setIsReloadingComments(false)
+        }
+    }
+
+    async function submitComment(){
+        if(!newComment.trim()){
+            showWarning("Input Kosong", "Silakan tulis komentar terlebih dahulu.");
+            return
+        }
+        const token = await getStorageValue(tokenKey)
+        if(!token){
+            showWarning("Akses Ditolak", "Silakan login untuk berkomentar.");
+            return
+        }
+        setIsSubmittingComment(true)
+        try{
+            const tagId = tagData?.activeVersion?.id
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-version/${tagId}/comment`
+
+            const formData = new FormData()
+            formData.append("content", newComment)
+            if(tempCommentImage){
+                const uriParts = tempCommentImage.uri.split('.')
+                const fileExtension = uriParts.length > 1 ? uriParts[uriParts.length - 1].toLowerCase() : 'jpg';
+
+                if(Platform.OS == 'web'){
+                    const imgResponse = await fetch(tempCommentImage.uri)
+                    const blob = await imgResponse.blob()
+                    formData.append("images", blob, `comment_${Date.now()}.${fileExtension}`)
+                }
+                else{
+                    formData.append("images", {
+                        uri: tempCommentImage.uri,
+                        name: `comment_${Date.now()}.${fileExtension}`,
+                        type: tempCommentImage.mimeType || 'image/jpeg',
+                    }as any)
+                }
+            }
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            })
+
+            const jsonResponse = await response.json()
+            if(jsonResponse.status == 201){
+                setNewComment('')
+                setTempCommentImage(null)
+                reloadComments()
+            }
+            else{
+                showWarning("Gagal", jsonResponse.message || "Gagal mengirim komentar.");
+            }
+        }
+        catch(error){
+            console.error(error);
+            showWarning("Error Jaringan", "Gagal menghubungi server.");
+        }
+        finally{
+            setIsSubmittingComment(false)
         }
     }
 
@@ -164,6 +260,8 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         if (totalVotes > 0) {
             reliability = Math.round((activeVersion.approveCount / totalVotes) * 100);
         }
+
+        const currentUserVote = tagData?.currentUserVote
 
         return (
             <>
@@ -294,18 +392,32 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
                 <View style={styles.buttonRow}>
                     <TouchableOpacity 
-                        style={[styles.outlineButton, isVoting && { opacity: 0.5 }]}
+                        style={[
+                            styles.outlineButton, 
+                            isVoting && { opacity: 0.5 },
+                            currentUserVote === 'Approve' && { backgroundColor: '#10B981', borderColor: '#10B981' },
+                        ]}
                         onPress={() => submitVote('Approve')}
                         disabled={isVoting}
                     >
-                        <Text style={styles.outlineButtonText}>Approve</Text>
+                        <Text style={[
+                            styles.outlineButtonText,
+                            currentUserVote === 'Approve' && { color: 'white' }
+                        ]}>Approve</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                        style={[styles.outlineButton, isVoting && { opacity: 0.5 }]}
+                        style={[
+                            styles.outlineButton, 
+                            isVoting && { opacity: 0.5 },
+                            currentUserVote === 'Reject' && { backgroundColor: '#EF4444', borderColor: '#EF4444' },
+                        ]}
                         onPress={() => submitVote('Reject')}
                         disabled={isVoting}
                     >
-                        <Text style={styles.outlineButtonText}>Reject</Text>
+                        <Text style={[
+                            styles.outlineButtonText,
+                            currentUserVote === 'Reject' && { color: 'white' }
+                        ]}>Reject</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -329,45 +441,79 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     };
 
     function renderComments () {
-        const comments = tagData?.activeVersion?.comments || [];
 
         return(
             <View style={{ flex: 1 }}>
-                <TouchableOpacity style={styles.commentHeader} onPress={() => setCommentMode(!commentMode)}>
+                <View style={styles.commentHeader}>
                     <View style={styles.commentsLeft}>
                         <Ionicons name="chatbubble-outline" size={24} color="#1F2937" />
-                        <Text style={styles.commentsText}>Comments</Text>
+                        <Text style={styles.commentsText}>Comments ({tagComments.length})</Text>
                     </View>
-                    <Ionicons name="chevron-down" size={24} color="#1F2937" />
-                </TouchableOpacity>
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity 
+                            onPress={reloadComments} 
+                            disabled={isReloadingComments}
+                            style={{ marginRight: 15, padding: 5 }}
+                        >
+                            <Ionicons 
+                                name="refresh" 
+                                size={22} 
+                                color={isReloadingComments ? "#9CA3AF" : "#3B82F6"} 
+                            />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setCommentMode(false)}>
+                            <Ionicons name="chevron-down" size={24} color="#1F2937" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
                 <ScrollView contentContainerStyle={styles.contentContainer}>
-                    {comments.length > 0 ? (
-                        comments.map(
+                    <View style={{ marginBottom: 20, padding: 10, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
+                        <TextInput
+                            style={{ backgroundColor: 'white', padding: 10, borderRadius: 8, minHeight: 60, textAlignVertical: 'top' }}
+                            placeholder="Tulis komentar Anda..."
+                            multiline
+                            value={newComment}
+                            onChangeText={setNewComment}
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>
+                            <TouchableOpacity 
+                                style={{ backgroundColor: '#3B82F6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+                                onPress={submitComment}
+                                disabled={isSubmittingComment}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                                    {isSubmittingComment ? "Mengirim..." : "Kirim"}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {tagComments.length > 0 ? (
+                        tagComments.map(
                             (comment: any, index: number) => {
                                 let commentImage = null
                                 if(comment.imageUrl){
                                     commentImage = comment.imageUrl.startsWith('http') 
                                         ? comment.imageUrl 
-                                        : `${process.env.EXPO_PUBLIC_API_URL}/${comment.imageUrl}`;
+                                        : `${process.env.EXPO_PUBLIC_API_URL}/uploads/${comment.imageUrl}`;
                                 }
 
                                 return (
-                                    <View
-                                        key={index}
-                                        style={styles.commentImage}
-                                    >
-                                        <Text style={styles.commentUser}>
+                                    <View key={index} style={{ marginBottom: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+                                        <Text style={{ fontWeight: 'bold', color: '#374151', marginBottom: 5 }}>
                                             {comment.commentAuthor?.username || 'Anonymous'}
                                         </Text>
-                                        <Text style={styles.commentText}>
+                                        <Text style={{ color: '#4B5563', marginBottom: 8 }}>
                                             {comment.content}
                                         </Text>
                                         
                                         {commentImage && (
                                             <Image 
                                                 source={{ uri: commentImage }} 
-                                                style={styles.commentImage} 
+                                                style={{ width: '100%', height: 150, borderRadius: 8 }} 
                                                 contentFit="cover"
                                             />
                                         )}
@@ -377,7 +523,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                         )
                     ): (
                         <View style={{ alignItems: 'center', marginTop: 20 }}>
-                            <Text style={{ color: '#6B7280' }}>Belum ada komentar.</Text>
+                            <Text style={{ color: '#6B7280' }}>Belum ada komentar. Jadilah yang pertama!</Text>
                         </View>
                     )}
 
