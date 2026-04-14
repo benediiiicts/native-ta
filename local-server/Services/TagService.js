@@ -139,7 +139,7 @@ async function getTagRoad(_tagRoadId){
     }
 }
 
-async function getTagDetail(_tagId){
+async function getTagDetail(_tagId, _userId=null){
     try{
         const detail = await tagRoads.findOne({
             where: {id: _tagId, isHidden: false},
@@ -168,9 +168,23 @@ async function getTagDetail(_tagId){
             }
         }
 
+        let currentUserVote = null
+        if(_userId && detail.activeVersion){
+            const vote = await userVotes.findOne({
+                where: { userId: _userId, tagVersionId: detail.activeVersion.id }
+            });
+
+            if (vote) {
+                currentUserVote = vote.voteType;
+            }
+        }
+
+        const result = detail.toJSON()
+        result.currentUserVote = currentUserVote;
+
         return {
             status: 200,
-            data: detail,
+            data: result,
             message: "Tag detail successfully fetched"
         }
     }
@@ -259,17 +273,80 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
     }
 }
 
-async function getTagVersion(_tagVersionId){
-    try{
-        const version = await tagVersions.findByPk(_tagVersionId)
-    }
-    catch(error){
+// async function getTagVersion(_tagVersionId){
+//     try{
+//         const version = await tagVersions.findByPk(_tagVersionId)
+//     }
+//     catch(error){
 
-    }
-}
+//     }
+// }
 
 async function deleteTagVersion(){
     
+}
+
+async function commentTagVersion(_userId, _tagId, _content, _image=null){
+    try{
+        const result = await sequelize.transaction(async (t) => {
+            const newComment = await comments.create({
+                tagVersionId: _tagId,
+                userId: _userId,
+                content: _content,
+            }, {transaction: t})
+
+            if(_image && _image.length > 0){    
+                newComment.update({
+                    imageUrl: _image[0].filename
+                }, {transaction: t})
+            }
+
+            return newComment
+        })
+        return{
+            status: 201,
+            message: 'New comment successfully added',
+            data: result
+        }
+    }
+    catch(error){
+        console.error(`Error while posting comment: ${error}`)
+        if(error.status && error.message){
+            return{
+                status: error.status,
+                message: error.message
+            }
+        }
+        else{
+            return {
+                status: 500,
+                message: 'Internal server error while posting comment'
+            }    
+        }
+    }
+}
+
+//hanya untuk reload comment ketika user klik tombol refresh
+async function loadComment(_tagId){
+    try{
+        const fetchComments = await comments.findAll({
+            where: {tagVersionId: _tagId},
+            include: [{ model: user, as: 'commentAuthor', attributes: ['username'] }],
+            order: [['createdAt', 'DESC']]
+        })
+        return{
+            status: 200,
+            data: fetchComments,
+            message: `Comments successfully loaded`
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching comments ${error}`)
+        return {
+            status: 500,
+            message: 'Failed to fetch comments due to server error'
+        }
+    }
 }
 
 async function voteTagVersion(_userId, _tagId, _voteType){
@@ -357,8 +434,9 @@ export {
     getAllTags,
     deleteTagRoad,
     updateTagRoad,
-    createTagVersion, 
-    getTagVersion,
+    createTagVersion,
     deleteTagVersion,
+    commentTagVersion,
+    loadComment,
     voteTagVersion
 }

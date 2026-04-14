@@ -1,4 +1,11 @@
-import {createTagRoad, getAllTags, getTagDetail, getTagRoad, deleteTagRoad, updateTagRoad, createTagVersion, getTagVersion, deleteTagVersion, voteTagVersion} from '../Services/TagService.js'
+import {
+    createTagRoad, 
+    getAllTags, 
+    getTagDetail, 
+    createTagVersion, 
+    voteTagVersion, 
+    commentTagVersion, 
+    loadComment,} from '../Services/TagService.js'
 import {saveImages} from '../Services/MediaService.js'
 
 async function addNewTagRoad(req, res){
@@ -34,27 +41,34 @@ async function addNewTagVersion(req, res){
 
 async function fetchAllTags(req, res){
     try{
-        const tags = await getAllTags()
+        const tags = await getAllTags();
+        
         return res.status(tags.status).json({
             status: tags.status,
-            data: tags.data
+            data: tags.data,
+            message: tags.message || "Tags fetched successfully"
         })
     }
     catch(error){
-        console.error(`Controller Error while fetching tags: ${error}`)
-        return res.status(500).json({message: "Internal server error while fetching tags"})
+        console.error(`Controller error while fetching all tags: ${error}`)
+        return res.status(500).json({message: "Internal server error while fetching all tags"})
     }
 }
 
 async function fetchTagDetails(req, res){
     try{
-        const tagId = req.params.id
-        const tagDetails = await getTagDetail(tagId)
+        const tagId = req.params.id;
+        if (!tagId || tagId === 'undefined') {
+            return res.status(400).json({ message: "ID Tag tidak valid" });
+        }
+        const userId = req.user?.id || null; 
+        const tagDetails = await getTagDetail(tagId, userId);
+
         return res.status(tagDetails.status).json({
             status: tagDetails.status,
             data: tagDetails.data,
             message: tagDetails.message
-        })   
+        });
     }
     catch(error){
         console.error(`Controller error while fetching tag details: ${error}`)
@@ -85,10 +99,47 @@ async function handleVote(req, res){
     }
 }
 
+async function handleComment(req, res){
+    try{
+        const userId = req.user.id
+        const tagId = req.params.id
+        const {content} = req.body
+        const images = req.files || []
+        let commentResult = await commentTagVersion(userId, tagId, content, images)
+        return res.status(commentResult.status).json({
+            data: commentResult.data,
+            status: commentResult.status,
+            message: commentResult.message
+        })
+    }
+    catch(error){
+        console.error(`Error while posting comment: ${error}`)
+        return res.status(500).json({message: `Internal error while posting comment`})
+    }
+}
+
+async function handleLoadComment(req, res){
+    try{
+        const tagId = req.params.id
+        let commentResult = await loadComment(tagId)
+        return res.status(commentResult.status).json({
+            data: commentResult.data,
+            status: commentResult.status,
+            message: commentResult.message
+        })
+    }
+    catch(error){
+        console.error(`Error while fetching comments ${error}`)
+        return res.status(500).json({message: `Internal error while fetching comments`})
+    }
+}
+
 export {
     addNewTagRoad,
     addNewTagVersion,
     fetchAllTags,
     fetchTagDetails,
-    handleVote
+    handleVote,
+    handleComment,
+    handleLoadComment
 }
