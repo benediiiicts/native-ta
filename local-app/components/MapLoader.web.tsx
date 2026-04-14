@@ -89,17 +89,15 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                     <Marker
                         key={tag.id}
                         position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
-                        eventHandlers={{
-                            click: () => onTagSelect(tag),
-                        }}
                     >
-                        <Popup
-                            eventHandlers={{
-                                click: () => onTagSelect(tag),
-                            }}
-                        >
-                            <b>{tag.issueType || tag.issue_type}</b> <br />
-                            Klik untuk melihat detail.
+                        <Popup>
+                            <div 
+                                onClick={() => onTagSelect(tag)} 
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <b>{tag.issueType || tag.issue_type}</b> <br />
+                                Klik untuk melihat detail.
+                            </div>
                         </Popup>
                     </Marker>
                 )

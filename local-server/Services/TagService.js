@@ -1,5 +1,5 @@
 import { tagRoads, tagVersions } from '../Models/TagModel.js';
-import { user } from '../Models/UserModel.js';
+import { user, userVotes } from '../Models/UserModel.js';
 import { versionImages, comments } from '../Models/MediaModel.js';
 import { Op } from "sequelize";
 import sequelize from "../database.js";
@@ -116,10 +116,18 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _issueT
 
 async function getTagRoad(_tagRoadId){
     try{
-        const fetchRoad = await tagRoads.findByPk(_tagRoadId)
-        return {
-            data: fetchRoad,
-            status: 200
+        const fetchRoad = await tagRoads.findByPk(_tagRoadId,{
+            where: {isHidden: false}
+        })
+        if(fetchRoad){
+            return {
+                data: fetchRoad,
+                status: 200
+            }
+        }
+        return{
+            status: 404,
+            message: "Tag road not found"
         }
     }
     catch(error){
@@ -131,7 +139,7 @@ async function getTagRoad(_tagRoadId){
     }
 }
 
-async function getTagDetail(_tagId){
+async function getTagDetail(_tagId, _userId=null){
     try{
         const detail = await tagRoads.findOne({
             where: {id: _tagId, isHidden: false},
@@ -160,9 +168,23 @@ async function getTagDetail(_tagId){
             }
         }
 
+        let currentUserVote = null
+        if(_userId && detail.activeVersion){
+            const vote = await userVotes.findOne({
+                where: { userId: _userId, tagVersionId: detail.activeVersion.id }
+            });
+
+            if (vote) {
+                currentUserVote = vote.voteType;
+            }
+        }
+
+        const result = detail.toJSON()
+        result.currentUserVote = currentUserVote;
+
         return {
             status: 200,
-            data: detail,
+            data: result,
             message: "Tag detail successfully fetched"
         }
     }
@@ -176,7 +198,7 @@ async function getTagDetail(_tagId){
 async function getAllTags(){
     try{
         const fetchTags = await tagRoads.findAll({
-            where: {is_hidden: false}
+            where: {isHidden: false}
         })
         return {
             data: fetchTags,
@@ -251,16 +273,158 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
     }
 }
 
-async function getTagVersion(_tagVersionId){
-    return await tagVersions.findByPk(_tagVersionId)
-}
+// async function getTagVersion(_tagVersionId){
+//     try{
+//         const version = await tagVersions.findByPk(_tagVersionId)
+//     }
+//     catch(error){
+
+//     }
+// }
 
 async function deleteTagVersion(){
     
 }
 
-async function updateTagVersion(){
+async function commentTagVersion(_userId, _tagId, _content, _image=null){
+    try{
+        const result = await sequelize.transaction(async (t) => {
+            const newComment = await comments.create({
+                tagVersionId: _tagId,
+                userId: _userId,
+                content: _content,
+            }, {transaction: t})
 
+            if(_image && _image.length > 0){    
+                newComment.update({
+                    imageUrl: _image[0].filename
+                }, {transaction: t})
+            }
+
+            return newComment
+        })
+        return{
+            status: 201,
+            message: 'New comment successfully added',
+            data: result
+        }
+    }
+    catch(error){
+        console.error(`Error while posting comment: ${error}`)
+        if(error.status && error.message){
+            return{
+                status: error.status,
+                message: error.message
+            }
+        }
+        else{
+            return {
+                status: 500,
+                message: 'Internal server error while posting comment'
+            }    
+        }
+    }
+}
+
+//hanya untuk reload comment ketika user klik tombol refresh
+async function loadComment(_tagId){
+    try{
+        const fetchComments = await comments.findAll({
+            where: {tagVersionId: _tagId},
+            include: [{ model: user, as: 'commentAuthor', attributes: ['username'] }],
+            order: [['createdAt', 'DESC']]
+        })
+        return{
+            status: 200,
+            data: fetchComments,
+            message: `Comments successfully loaded`
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching comments ${error}`)
+        return {
+            status: 500,
+            message: 'Failed to fetch comments due to server error'
+        }
+    }
+}
+
+async function voteTagVersion(_userId, _tagId, _voteType){
+    try{
+        const result = await sequelize.transaction(async (t) => {
+            const existingVote = await userVotes.findOne({
+                where: {userId: _userId, tagVersionId: _tagId},
+                transaction: t
+            })
+
+            const version = await tagVersions.findByPk(_tagId, {transaction: t})
+            if(!version){
+                const error = new Error("Version not found")
+                error.status = 404
+                throw error
+            }
+            if(existingVote){
+                if(existingVote.voteType == _voteType){
+                    await existingVote.destroy({transaction: t})
+                    if (_voteType === 'Approve') {
+                        await version.decrement('approveCount', { transaction: t });
+                    } else if (_voteType === 'Reject') {
+                        await version.decrement('rejectCount', { transaction: t });
+                    }
+                    return { 
+                        status: 200, 
+                        message: "Vote removed", 
+                        currentVote: null 
+                    };
+                }
+                else{
+                    await existingVote.update({voteType: _voteType}, {transaction: t})
+                    if(_voteType == 'Approve'){
+                        await version.increment('approveCount', {transaction: t})
+                        await version.decrement('rejectCount', { transaction: t });
+                    }
+                    else if(_voteType == 'Reject'){
+                         await version.decrement('approveCount', {transaction: t})
+                        await version.increment('rejectCount', { transaction: t });
+                    }
+                    return{
+                        status: 200,
+                        message: "Vote updated",
+                        currentVote: _voteType
+                    }
+                }
+            }
+            else{
+                await userVotes.create({
+                    userId: _userId,
+                    tagVersionId: _tagId,
+                    voteType: _voteType
+                }, {transaction: t})
+
+                if(_voteType == 'Approve'){
+                    await version.increment('approveCount', {transaction: t})
+                }
+                else if (_voteType == 'Reject'){
+                    await version.increment('rejectCount', {transaction: t})
+                }
+
+                return { 
+                    status: 201, 
+                    message: "Vote added", 
+                    currentVote: _voteType 
+                };
+            }
+        })
+
+        return result
+    }
+    catch(error){
+        console.error(`Error while processing vote ${error}`)
+        return{
+            status: error.status || 500,
+            message: error.message || "Internal server error while processing vote"
+        }
+    }
 }
 
 export {
@@ -270,8 +434,9 @@ export {
     getAllTags,
     deleteTagRoad,
     updateTagRoad,
-    createTagVersion, 
-    getTagVersion,
+    createTagVersion,
     deleteTagVersion,
-    updateTagVersion
+    commentTagVersion,
+    loadComment,
+    voteTagVersion
 }

@@ -22,4 +22,23 @@ function authenticateToken (req, res, next) {
     }
 };
 
-export {authenticateToken}
+function optionalAuth(req, res, next){
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if(!token){
+        req.user = null
+        return next()
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            req.user = null;//masuk sebagai guest
+            return next();
+        }
+        req.user = user;//login
+        next();
+    });
+}
+
+export {authenticateToken, optionalAuth}
