@@ -4,11 +4,10 @@ import {
     addNewTagVersion, 
     fetchAllTags, 
     fetchTagDetails, 
-    handleVote,
-    handleComment,
-    handleLoadComment } from '../Controllers/TagController.js';
-import upload from '../Middleware/UploadMiddleware.js';
+    handleVote} from '../Controllers/TagController.js';
+import {handleComment, handleLoadComment} from '../Controllers/CommentController.js';
 import { authenticateToken, optionalAuth } from '../Middleware/AuthMiddleware.js';
+import upload from '../Middleware/UploadMiddleware.js';
 
 const router = Router()
 
