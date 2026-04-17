@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from "react";
 import { Dimensions, TextInput, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import WarningModal from "@/components/Modals/WarningModal";
+import AddVersionModal from './AddVersionModal';
 
 interface DetailModalProps {
     visible: boolean;
@@ -42,7 +43,9 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
     const [isReloadingComments, setIsReloadingComments] = useState(false);
     const [tempCommentImage, setTempCommentImage] = useState<any>(null);
-    
+
+    //untuk add version
+    const [addVersionVisible, setAddVersionVisible] = useState(false);
 
     //untuk vote
     const [isVoting, setIsVoting] = useState(false)
@@ -226,6 +229,10 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         }
     }
 
+    async function addNewVersion(){
+        
+    }
+
     function scrollToImage (index: number){
         if (scrollViewRef.current && sliderWidth > 0) {
             scrollViewRef.current.scrollTo({
@@ -368,7 +375,10 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
                     <View style={styles.actionGroup}>
                         {/* untuk add version */}
-                        <TouchableOpacity style={{ marginRight: 15 }}>
+                        <TouchableOpacity 
+                            style={{ marginRight: 15 }} 
+                            onPress={() => setAddVersionVisible(true)}
+                        >
                             <FontAwesome5 name="pen" size={20} color="#374151" />
                         </TouchableOpacity>
                         {/* untuk report version */}
@@ -553,6 +563,17 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     />
                 </Pressable>
             </Pressable>
+            
+            {tagId && (
+                <AddVersionModal
+                    visible={addVersionVisible}
+                    onClose={() => setAddVersionVisible(false)}
+                    tagRoadId={tagId}
+                    onVersionAdded={() => {
+                        fetchTagDetail(); 
+                    }}
+                />
+            )}
         </Modal>
     );
 }
