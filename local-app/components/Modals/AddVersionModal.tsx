@@ -1,18 +1,16 @@
 import styles from "@/styles/AddTagModal.styles";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from "react";
 import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import ConfirmModal from "./ConfirmationModal"; 
 import WarningModal from "@/components/Modals/WarningModal";
 
-interface AddTagModalProps {
+interface AddVersionModalProps {
     visible: boolean;
     onClose: () => void;
-    onPickLocation: () => void;
-    selectedLocation: any;
-    onTagAdded?: () => void;
+    tagRoadId: number;
+    onVersionAdded?: () => void;
 }
 
 async function getStorageValue(key: string){
@@ -28,27 +26,22 @@ async function getStorageValue(key: string){
     }
 }
 
-export const TAG_TYPES = [
-    'Jalan Rusak',           
-    'Fasilitas Jalan Rusak', 
-    'Genangan Air / Banjir', 
-    'Hambatan Jalan',        
-    'Kecelakaan Lalu Lintas',
-    'Penutupan / Proyek Jalan'
+export const TAG_STATUSES = [
+    'Menunggu Tindakan',    
+    'Dalam Penanganan',     
+    'Sudah Diperbaiki',     
+    'Kedaluwarsa / Tidak Valid'
 ];
 
-function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded }: AddTagModalProps) {
+function AddVersionModal({ visible, onClose, tagRoadId, onVersionAdded }: AddVersionModalProps) {
     const tokenKey = 'userToken';
    
     const [description, setDescription] = useState("");
     const [tempImages, setTempImages] = useState<any[]>([])
-    const [tagType, setTagType] = useState('')
+    const [status, setStatus] = useState('') 
     const [showDropdown, setShowDropdown] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    //untuk modals
-    const [confirmForceCreate, setConfirmForceCreate] = useState(false);
-    
     const [warningVisible, setWarningVisible] = useState(false);
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
@@ -65,11 +58,6 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
         }
         
         setWarningVisible(true);
-    }
-
-    let locationText = "Pilih lokasi dari peta...";
-    if (selectedLocation) {
-        locationText = selectedLocation.name ? selectedLocation.name : "Lokasi terpilih";
     }
     
     async function pickImage(){
@@ -106,15 +94,15 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
         setTempImages(tempImages.filter((_, index) => index !== indexToRemove))
     }
 
-    async function handlePost(forceCreate=false){
+    async function handlePost(){
         const token = await getStorageValue(tokenKey)
         if(!token){
             showWarning("Sesi Berakhir", "Sesi Anda tidak valid. Silakan login kembali.");
             return;
         }
 
-        if(!selectedLocation || !tagType || !description.trim()){
-            showWarning("Data Tidak Lengkap", "Mohon lengkapi lokasi, tipe tag, dan deskripsi terlebih dahulu.");
+        if(!status || !description.trim()){
+            showWarning("Data Tidak Lengkap", "Mohon lengkapi status dan deskripsi terlebih dahulu.");
             return;
         }
 
@@ -126,19 +114,15 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
         setIsLoading(true)
         try{
             const formData = new FormData();
-            formData.append("latitude", selectedLocation.latitude.toString())
-            formData.append("longitude", selectedLocation.longitude.toString())
-            formData.append("roadClass", selectedLocation.roadClass || 'Unclassified')
-            formData.append("issueType", tagType);
-            formData.append("description", description)
-            formData.append("forceCreate", forceCreate ? "true" : "false")
+            
+            formData.append("tagRoadId", tagRoadId.toString());
+            formData.append("status", status);
+            formData.append("description", description);
         
             for(let index = 0; index < tempImages.length; index++){
                 const image = tempImages[index];
-                
                 const mimeType = image.mimeType || 'image/jpeg';
                 const fileExtension = mimeType.split('/')[1] || 'jpg';
-            
                 const fileName = image.fileName || `image_${Date.now()}_${index}.${fileExtension}`;
 
                 if(Platform.OS === 'web'){
@@ -150,11 +134,12 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     formData.append("images", {
                         uri: image.uri,
                         type: mimeType,
+                        name: fileName
                     } as any);
                 }
             }
 
-            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads`;
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-version`;
             const response = await fetch(apiUrl, {
                 method: "POST",
                 headers: {
@@ -166,16 +151,17 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
 
             const jsonResponse = await response.json()
             if(jsonResponse.status === 201){
-                showWarning("Sukses", "Laporan jalan rusak berhasil dibuat!", () => {
-                    setWarningVisible(false);
-                    if(onTagAdded){
-                        onTagAdded()
+                showWarning(
+                    "Pembaruan Diterima", 
+                    "Versi pembaruan jalan Anda telah berhasil disimpan. Informasi ini akan ditampilkan sebagai status utama setelah diverifikasi dan mendapatkan cukup persetujuan (Approve) dari pengguna lain.", 
+                    () => {
+                        setWarningVisible(false);
+                        if(onVersionAdded){
+                            onVersionAdded() 
+                        }
+                        resetForm();
                     }
-                    resetForm();
-                });
-            }
-            else if(jsonResponse.status === 409){
-                setConfirmForceCreate(true)
+                );
             }
             else{
                 showWarning("Gagal", jsonResponse.message || "Terjadi kesalahan pada server.");
@@ -189,14 +175,9 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
         }
     }
 
-    function handleForceCreate(){
-        setConfirmForceCreate(false);
-        handlePost(true);
-    }
-
     function resetForm(){
         setDescription('')
-        setTagType('')
+        setStatus('')
         setTempImages([])
         setShowDropdown(false)
         onClose()
@@ -218,12 +199,8 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                 
                 <TouchableOpacity 
                     style={styles.closeButton} 
-                    onPress={()=>{
-                        setDescription('')
-                        setTagType('')
-                        setTempImages([])
-                        onClose()
-                    }}>
+                    onPress={resetForm}
+                >
                     <Ionicons name="close-circle" size={28} color="#333" />
                 </TouchableOpacity>
 
@@ -247,42 +224,25 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     )}
                 </ScrollView>
 
-                <View style={styles.labelRow}>
-                    <Text style={styles.label}>Location</Text>
-                </View>
-
-                <TouchableOpacity 
-                    style={styles.inputWrapper} 
-                    onPress={onPickLocation}
-                    activeOpacity={0.7}
-                >
-                <Text style={[styles.textInput, { color: selectedLocation ? "#000" : "#888", marginTop: 12 }]}>
-                    {locationText}
-                </Text>
-                <View style={styles.iconButton}>
-                    <MaterialCommunityIcons name="map-marker-radius" size={20} color="#333" />
-                </View>
-                </TouchableOpacity>
-
-                <Text style={styles.label}>Select tag type</Text>
+                <Text style={styles.label}>Pilih Status Terbaru</Text>
                 <TouchableOpacity 
                     style={styles.dropdownButton} 
                     onPress={() => setShowDropdown(!showDropdown)}
                 >
-                    <Text style={[styles.dropdownText, { color: tagType ? "#000" : "#888" }]}>
-                        {tagType || "Pilih jenis kerusakan..."}
+                    <Text style={[styles.dropdownText, { color: status ? "#000" : "#888" }]}>
+                        {status || "Pilih status..."}
                     </Text>
                     <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={20} color="#333" />
                 </TouchableOpacity>
 
                 {showDropdown && (
                     <View style={{ backgroundColor: '#F3F4F6', borderRadius: 8, marginTop: -10, marginBottom: 15, padding: 5 }}>
-                        {TAG_TYPES.map((type, index) => (
+                        {TAG_STATUSES.map((type, index) => (
                             <TouchableOpacity 
                                 key={index} 
-                                style={{ padding: 10, borderBottomWidth: index === TAG_TYPES.length - 1 ? 0 : 1, borderBottomColor: '#E5E7EB' }}
+                                style={{ padding: 10, borderBottomWidth: index === TAG_STATUSES.length - 1 ? 0 : 1, borderBottomColor: '#E5E7EB' }}
                                 onPress={() => {
-                                    setTagType(type);
+                                    setStatus(type);
                                     setShowDropdown(false);
                                 }}
                             >
@@ -298,7 +258,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     multiline={true}
                     numberOfLines={4}
                     textAlignVertical="top"
-                    placeholder="Tuliskan detail kerusakan..."
+                    placeholder="Tuliskan pembaruan kondisi jalan saat ini..."
                     value={description}
                     onChangeText={setDescription}
                 />
@@ -306,24 +266,14 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                 <View style={styles.footer}>
                     <TouchableOpacity 
                         style={[styles.submitButton, isLoading && { opacity: 0.7 }]} 
-                        onPress={() => handlePost(false)}
+                        onPress={handlePost}
                         disabled={isLoading}
                     >
                         <Text style={styles.submitButtonText}>
-                            {isLoading ? "Memproses..." : "Post a tag"}
+                            {isLoading ? "Memproses..." : "Update Versi"}
                         </Text>
                     </TouchableOpacity>
                 </View>
-
-                <ConfirmModal
-                    visible={confirmForceCreate}
-                    title="Jalan Sudah Dilaporkan"
-                    message="Terdapat laporan pada lokasi yang sangat dekat. Apakah Anda yakin ingin memaksakan membuat titik laporan baru?"
-                    confirmText="Ya, Paksa Buat Baru"
-                    cancelText="Batal"
-                    onConfirm={handleForceCreate}
-                    onCancel={() => setConfirmForceCreate(false)}
-                />
 
                 <WarningModal
                     visible={warningVisible}
@@ -341,4 +291,4 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
     );
 }
 
-export default AddTagModal;
+export default AddVersionModal;
