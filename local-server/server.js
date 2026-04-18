@@ -6,6 +6,7 @@ import tagRouter from './Routes/TagRoutes.js'
 import sequelize from './database.js'
 import 'dotenv/config';
 import setupAssociations from './Models/associations.js';
+import countRelevanceScore from './Services/TagService.js'
 
 const app = express()
 
@@ -19,6 +20,15 @@ app.use(express.json())
 
 //setup asosiasi sequelize
 setupAssociations();
+
+//Cron Job tag service
+//dijalankan pada tengah malam
+cron.schedule('0 0 * * *', () => {
+    countRelevanceScore();
+});
+
+//untuk menjalankan 1 kali setelah server berjalan
+countRelevanceScore();
 
 //Routes API
 const port = 8080

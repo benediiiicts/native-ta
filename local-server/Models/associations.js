@@ -3,6 +3,7 @@ import { tagRoads, tagVersions } from './TagModel.js';
 import { versionImages, comments } from './MediaModel.js';
 
 tagRoads.belongsTo(tagVersions, {foreignKey: 'activeVersionId', as: 'activeVersion'})
+tagRoads.hasMany(tagVersions, {foreignKey: 'activeVersionId', as: 'versions'})
 
 tagVersions.belongsTo(user, {foreignKey: 'userId', as: 'author'})
 tagVersions.hasMany(versionImages, {foreignKey: 'tagVersionId', as: 'images'})
