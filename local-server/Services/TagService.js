@@ -2,6 +2,7 @@ import { tagRoads, tagVersions } from '../Models/TagModel.js';
 import { user, userVotes } from '../Models/UserModel.js';
 import { versionImages, comments } from '../Models/MediaModel.js';
 import { Op } from "sequelize";
+import cron from 'node-cron';
 import sequelize from "../database.js";
 import { saveImages } from "./MediaService.js";
 
@@ -286,69 +287,6 @@ async function deleteTagVersion(){
     
 }
 
-async function commentTagVersion(_userId, _tagId, _content, _image=null){
-    try{
-        const result = await sequelize.transaction(async (t) => {
-            const newComment = await comments.create({
-                tagVersionId: _tagId,
-                userId: _userId,
-                content: _content,
-            }, {transaction: t})
-
-            if(_image && _image.length > 0){    
-                newComment.update({
-                    imageUrl: _image[0].filename
-                }, {transaction: t})
-            }
-
-            return newComment
-        })
-        return{
-            status: 201,
-            message: 'New comment successfully added',
-            data: result
-        }
-    }
-    catch(error){
-        console.error(`Error while posting comment: ${error}`)
-        if(error.status && error.message){
-            return{
-                status: error.status,
-                message: error.message
-            }
-        }
-        else{
-            return {
-                status: 500,
-                message: 'Internal server error while posting comment'
-            }    
-        }
-    }
-}
-
-//hanya untuk reload comment ketika user klik tombol refresh
-async function loadComment(_tagId){
-    try{
-        const fetchComments = await comments.findAll({
-            where: {tagVersionId: _tagId},
-            include: [{ model: user, as: 'commentAuthor', attributes: ['username'] }],
-            order: [['createdAt', 'DESC']]
-        })
-        return{
-            status: 200,
-            data: fetchComments,
-            message: `Comments successfully loaded`
-        }
-    }
-    catch(error){
-        console.error(`Error while fetching comments ${error}`)
-        return {
-            status: 500,
-            message: 'Failed to fetch comments due to server error'
-        }
-    }
-}
-
 async function voteTagVersion(_userId, _tagId, _voteType){
     try{
         const result = await sequelize.transaction(async (t) => {
@@ -363,6 +301,10 @@ async function voteTagVersion(_userId, _tagId, _voteType){
                 error.status = 404
                 throw error
             }
+
+            let actionMessage = "";
+            let finalVoteStatus = _voteType;
+
             if(existingVote){
                 if(existingVote.voteType == _voteType){
                     await existingVote.destroy({transaction: t})
@@ -371,11 +313,8 @@ async function voteTagVersion(_userId, _tagId, _voteType){
                     } else if (_voteType === 'Reject') {
                         await version.decrement('rejectCount', { transaction: t });
                     }
-                    return { 
-                        status: 200, 
-                        message: "Vote removed", 
-                        currentVote: null 
-                    };
+                    actionMessage = "Vote removed";
+                    finalVoteStatus = null;
                 }
                 else{
                     await existingVote.update({voteType: _voteType}, {transaction: t})
@@ -384,14 +323,10 @@ async function voteTagVersion(_userId, _tagId, _voteType){
                         await version.decrement('rejectCount', { transaction: t });
                     }
                     else if(_voteType == 'Reject'){
-                         await version.decrement('approveCount', {transaction: t})
+                        await version.decrement('approveCount', {transaction: t})
                         await version.increment('rejectCount', { transaction: t });
                     }
-                    return{
-                        status: 200,
-                        message: "Vote updated",
-                        currentVote: _voteType
-                    }
+                    actionMessage = "Vote updated";
                 }
             }
             else{
@@ -407,23 +342,106 @@ async function voteTagVersion(_userId, _tagId, _voteType){
                 else if (_voteType == 'Reject'){
                     await version.increment('rejectCount', {transaction: t})
                 }
-
-                return { 
-                    status: 201, 
-                    message: "Vote added", 
-                    currentVote: _voteType 
-                };
+                actionMessage = "Vote added";
             }
-        })
 
+            await version.reload({ transaction: t });
+
+            // Hitung usia dalam hari
+            const ageInMs = Date.now() - new Date(version.createdAt).getTime();
+            const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
+
+            // Rumus time decay: (Approve - Reject + 1) / (Age + 1)^1.5
+            const baseVotes = (version.approveCount - version.rejectCount) + 1;
+            const newScore = baseVotes / Math.pow((ageInDays + 1), 1.5);
+
+            await version.update({ score: newScore }, { transaction: t });
+
+            // Cari versi dengan skor tertinggi untuk jalan ini
+            const bestVersion = await tagVersions.findOne({
+                where: { tagRoadId: version.tagRoadId },
+                order: [['score', 'DESC']],
+                transaction: t
+            });
+
+            const road = await tagRoads.findByPk(version.tagRoadId, { transaction: t });
+            if (road && bestVersion && road.activeVersionId !== bestVersion.id) {
+                await road.update({ 
+                    activeVersionId: bestVersion.id 
+                }, { transaction: t });
+            }
+
+            return { 
+                status: (existingVote && existingVote.voteType !== _voteType) ? 200 : (existingVote ? 200 : 201), 
+                message: actionMessage, 
+                currentVote: finalVoteStatus 
+            };
+        })
+        
         return result
     }
     catch(error){
-        console.error(`Error while processing vote ${error}`)
+        console.error(`Error while processing vote: ${error}`)
         return{
             status: error.status || 500,
             message: error.message || "Internal server error while processing vote"
         }
+    }
+}
+
+async function countRelevanceScore(){
+    try{
+        console.log(`[CRON JOB] Calculating scores using time decay`)
+
+        const roads = await tagRoads.findAll({
+            where: {isHidden: false},
+            include: [
+                {
+                    model: tagVersions,
+                    as: 'versions'
+                }
+            ]
+        })
+
+        const gravitation = 1.5
+        for(let road of roads){
+            if(!road.versions || road.versions.length == 0) continue
+            
+            let highestScore = -1
+            let bestVersionId = null
+
+            for(let version of road.versions){
+                //hitung usia dalam hari
+                const ageInMs = Date.now() = new Date(version.createdAt).getTime()
+                const ageInDays = ageInMs / (100*60*60*24)
+
+                // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
+                const baseVote = (version.approveCount - version.rejectCount) + 1
+                const divisor = Math.pow(ageInDays + 1, gravitation)
+                const decayScore = baseVote / divisor
+
+                await version.update({
+                    score: decayScore
+                })
+
+                if(decayScore > highestScore){
+                    highestScore = decayScore
+                    bestVersionId = version.id
+                }
+                
+            }
+
+            if(bestVersionId && road.bestVersionId !== bestVersionId){
+                await road.update({
+                    activeVersionId: bestVersionId
+                })
+                console.log(`[CRON JOB] Road: ${road.id}'s version changed to: ${bestVersionId}`);
+            }
+        }
+        console.log("[CRON JOB] Time decay cron job FINISHED");
+    }
+    catch(error){
+        console.error(`[CRON JOB] Error while calculating time decay: ${error}`)
     }
 }
 
@@ -436,7 +454,6 @@ export {
     updateTagRoad,
     createTagVersion,
     deleteTagVersion,
-    commentTagVersion,
-    loadComment,
-    voteTagVersion
+    voteTagVersion,
+    countRelevanceScore
 }
