@@ -4,7 +4,8 @@ import {
     addNewTagVersion, 
     fetchAllTags, 
     fetchTagDetails, 
-    handleVote} from '../Controllers/TagController.js';
+    handleVote,
+    fetchVersionHistory} from '../Controllers/TagController.js';
 import {handleComment, handleLoadComment} from '../Controllers/CommentController.js';
 import { authenticateToken, optionalAuth } from '../Middleware/AuthMiddleware.js';
 import upload from '../Middleware/UploadMiddleware.js';
@@ -18,6 +19,7 @@ router.post('/tag-version', authenticateToken, upload.array('images', 3), addNew
 router.post('/tag-version/:id/vote', authenticateToken, handleVote)
 router.post('/tag-version/:id/comment', authenticateToken, upload.array('images', 1), handleComment)
 router.get('/tag-version/:id/comment', handleLoadComment)
+router.get('/tag-roads/:id/versions', fetchVersionHistory);
 
 router.get('/fetch-all', fetchAllTags)
 
