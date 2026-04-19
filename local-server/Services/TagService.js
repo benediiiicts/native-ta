@@ -215,14 +215,6 @@ async function getAllTags(){
     }
 }
 
-async function deleteTagRoad(){
-    
-}
-
-async function updateTagRoad(){
-
-}
-
 //TAG VERSION
 async function createTagVersion(_tagRoadId, _userId, _status, _description, _images){
     const tagRoadExist = await getTagRoad(_tagRoadId)
@@ -274,17 +266,31 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
     }
 }
 
-// async function getTagVersion(_tagVersionId){
-//     try{
-//         const version = await tagVersions.findByPk(_tagVersionId)
-//     }
-//     catch(error){
+async function getVersionHistory(_tagId){
+    try{
+        const history = await tagVersions.findAll({
+            where: {tagRoadId: _tagId},
+            include: [{
+                model: user,
+                as: 'author',
+                attributes: ['username']
+            }],
+            order: [['score', 'DESC']]
+        })
 
-//     }
-// }
-
-async function deleteTagVersion(){
-    
+        return{
+            status: 200,
+            data: history,
+            message: 'Version history fetched successfully'
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching versions: ${error}`)
+        return{
+            status: 500,
+            message: 'Internal server error while fetching version history'
+        }
+    }
 }
 
 async function voteTagVersion(_userId, _tagId, _voteType){
@@ -450,10 +456,8 @@ export {
     getTagRoad,
     getTagDetail,
     getAllTags,
-    deleteTagRoad,
-    updateTagRoad,
     createTagVersion,
-    deleteTagVersion,
+    getVersionHistory,
     voteTagVersion,
     countRelevanceScore
 }

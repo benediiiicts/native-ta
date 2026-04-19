@@ -1,7 +1,8 @@
 import {
     createTagRoad, 
     getAllTags, 
-    getTagDetail, 
+    getTagDetail,
+    getVersionHistory,
     createTagVersion, 
     voteTagVersion} from '../Services/TagService.js'
 import {saveImages} from '../Services/MediaService.js'
@@ -97,10 +98,28 @@ async function handleVote(req, res){
     }
 }
 
+async function fetchVersionHistory(req, res){
+    try{
+        const tagId = req.params.id
+        const result = await fetchVersionHistory(tagId)
+
+        return res.status(result.status).json({
+            status: result.status,
+            data: result.data,
+            message: result.message
+        })
+    }
+    catch(error){
+        console.error(`Controller error while fething version history: ${error}`)
+        return res.status(500).json({message: 'Internal server error while fetching'})
+    }
+}
+
 export {
     addNewTagRoad,
     addNewTagVersion,
     fetchAllTags,
     fetchTagDetails,
     handleVote,
+    fetchVersionHistory
 }
