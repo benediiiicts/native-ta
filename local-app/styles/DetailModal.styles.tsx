@@ -249,5 +249,51 @@ export const styles = StyleSheet.create({
         backgroundColor: "#E5E7EB",
         marginTop: 5,
     },
-    
+
+    // --- HISTORY STYLES ---
+    roadNamePill: { 
+        borderWidth: 1, 
+        borderColor: '#374151', 
+        borderRadius: 8, 
+        paddingVertical: 6, 
+        paddingHorizontal: 12,
+        backgroundColor: '#FFFFFF',
+    },
+    roadNameText: { 
+        fontWeight: 'bold', 
+        color: '#1F2937',
+        fontSize: 15,
+    },
+    historyCard: { 
+        borderWidth: 1, 
+        borderColor: '#374151', 
+        borderRadius: 8, 
+        padding: 15, 
+        marginBottom: 15, 
+        backgroundColor: '#FFFFFF' 
+    },
+    cardHeader: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginBottom: 15 
+    },
+    cardBody: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-end' 
+    },
+    dateText: { 
+        color: '#6B7280', 
+        fontSize: 14 
+    },
+    voteContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center' 
+    },
+    voteText: { 
+        marginLeft: 8, 
+        fontWeight: 'bold', 
+        fontSize: 16, 
+        color: '#1F2937' 
+    }
 });
