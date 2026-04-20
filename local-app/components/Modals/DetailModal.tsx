@@ -44,6 +44,11 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [isReloadingComments, setIsReloadingComments] = useState(false);
     const [tempCommentImage, setTempCommentImage] = useState<any>(null);
 
+    //untuk version history
+    const [historyMode, setHistoryMode] = useState(false);
+    const [versionHistory, setVersionHistory] = useState<any[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
     //untuk add version
     const [addVersionVisible, setAddVersionVisible] = useState(false);
 
@@ -229,8 +234,22 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         }
     }
 
-    async function addNewVersion(){
-        
+    async function fetchVersionHistory(){
+        setIsLoadingHistory(true)
+        try{
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads/${tagId}/versions`;
+            const response = await fetch(apiUrl)
+            const jsonResponse = await response.json()
+            if(jsonResponse.status == 200 && jsonResponse.data){
+                setVersionHistory(jsonResponse.data)
+            }
+        }
+        catch(error){
+            console.error(error)
+        }
+        finally{
+            setIsLoadingHistory(false)
+        }
     }
 
     function scrollToImage (index: number){
@@ -252,6 +271,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
     function handleClose (){
         setCommentMode(false);
+        setHistoryMode(false);
         onClose();
     };
 
@@ -450,6 +470,60 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         );
     };
 
+    function renderHistory(){
+        const roadName = tagData ? `${tagData.roadClass} Road (ID: ${tagData.id})` : "Lokasi";
+        
+        return(
+            <View style={{ flex: 1 }}>
+                {/* Header Riwayat */}
+                <View style={styles.commentHeader}>
+                    <View style={styles.roadNamePill}>
+                        <Text style={styles.roadNameText}>{roadName}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setHistoryMode(false)}>
+                        <Ionicons name="close-circle" size={32} color="#4B5563" />
+                    </TouchableOpacity>
+                </View>
+
+                <ScrollView contentContainerStyle={styles.contentContainer}>
+                    {isLoadingHistory ? (
+                        <Text style={{ textAlign: 'center', marginTop: 20 }}>Memuat riwayat...</Text>
+                    ) : (
+                        versionHistory.map((ver) => {
+                            const totalVotes = ver.approveCount + ver.rejectCount;
+                            const approvePercentage = totalVotes > 0 ? Math.round((ver.approveCount / totalVotes) * 100) : 0;
+                            const isThumbsUp = approvePercentage >= 50;
+
+                            return (
+                                <View key={ver.id} style={styles.historyCard}>
+                                    <View style={styles.cardHeader}>
+                                        <FontAwesome5 
+                                            name={ver.status === 'Sudah Diperbaiki' ? "check-circle" : "exclamation-triangle"} 
+                                            size={20} 
+                                            color={ver.status === 'Sudah Diperbaiki' ? "#10B981" : "#F59E0B"} 
+                                        />
+                                        <Text style={styles.statusText}>{ver.status}</Text>
+                                    </View>
+                                    
+                                    <View style={styles.cardBody}>
+                                        <View>
+                                            <Text style={styles.authorText}>Created by {ver.author?.username}</Text>
+                                            <Text style={styles.dateText}>{new Date(ver.createdAt).toLocaleDateString('id-ID')}</Text>
+                                        </View>
+                                        <View style={styles.voteContainer}>
+                                            <FontAwesome5 name={isThumbsUp ? "thumbs-up" : "thumbs-down"} size={18} color="#374151" />
+                                            <Text style={styles.voteText}>{approvePercentage}%</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            );
+                        })
+                    )}
+                </ScrollView>
+            </View>
+        )
+    }
+
     function renderComments () {
 
         return(
@@ -551,7 +625,12 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         >
             <Pressable style={styles.overlay} onPress={handleClose}>
                 <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-                    {commentMode ? renderComments() : renderDetails()}
+                    {historyMode 
+                        ? renderHistory() 
+                        : commentMode 
+                            ? renderComments() 
+                            : renderDetails()
+                    }
 
                     <WarningModal
                         visible={warningVisible}
