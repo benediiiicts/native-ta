@@ -6,7 +6,7 @@ import tagRouter from './Routes/TagRoutes.js'
 import sequelize from './database.js'
 import 'dotenv/config';
 import setupAssociations from './Models/associations.js';
-import countRelevanceScore from './Services/TagService.js'
+import {countRelevanceScore} from './Services/TagService.js'
 
 const app = express()
 
@@ -27,9 +27,6 @@ cron.schedule('0 0 * * *', () => {
     countRelevanceScore();
 });
 
-//untuk menjalankan 1 kali setelah server berjalan
-countRelevanceScore();
-
 //Routes API
 const port = 8080
 app.use('/api/users', userRouter)
@@ -48,6 +45,10 @@ app.listen(port, async ()=>{
     try {
         await sequelize.authenticate();
         await sequelize.sync();
+        console.log('==============================================')
+        //untuk menjalankan 1 kali setelah server berjalan
+        countRelevanceScore();
+        console.log('==============================================')
         console.log(`Listening on port: ${port}`)
         console.log('Database connected');
     } catch (error) {
