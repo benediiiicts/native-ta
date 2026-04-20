@@ -49,6 +49,9 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [versionHistory, setVersionHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+    //untuk nama jalan
+    const [roadName, setRoadName] = useState("Memuat Lokasi...");
+
     //untuk add version
     const [addVersionVisible, setAddVersionVisible] = useState(false);
 
@@ -102,6 +105,8 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             if(jsonResponse.data){
                 setTagData(jsonResponse.data)
                 setTagComments(jsonResponse.data.activeVersion?.comments || [])
+                //untuk ambil nama jalan
+                getRoadName(jsonResponse.data.latitude, jsonResponse.data.longitude);
             }
         }
         catch(error){
@@ -252,6 +257,24 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         }
     }
 
+    async function getRoadName(lat: number, lon: number){
+        try{
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+            const jsonResponse = await response.json()
+            if(jsonResponse && jsonResponse.address){
+                const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"
+                setRoadName(name)
+            }
+            else{
+                setRoadName('Unkown')
+            }
+        }
+        catch(error){
+            console.error(`Error while fetching road name: ${error}`)
+            setRoadName('Unkown')
+        }
+    }
+
     function scrollToImage (index: number){
         if (scrollViewRef.current && sliderWidth > 0) {
             scrollViewRef.current.scrollTo({
@@ -381,6 +404,10 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     <Ionicons name="close-circle" size={32} color="#4B5563" />
                 </TouchableOpacity>
 
+                <View style={{ position: 'absolute', top: 15, left: 15, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, zIndex: 10 }}>
+                    <Text style={styles.roadNameText}>{roadName}</Text>
+                </View>
+
                 <View style={styles.streetLabel}>
                     <Text style={styles.streetLabelText}>{tagData.issueType}</Text>
                 </View>
@@ -451,7 +478,13 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.historyButton}>
+                <TouchableOpacity 
+                    style={styles.historyButton}
+                    onPress={() => {
+                        setHistoryMode(true);
+                        fetchVersionHistory();
+                    }}
+                >
                     <MaterialCommunityIcons name="history" size={24} color="#374151" />
                     <Text style={styles.historyText}>See other versions...</Text>
                 </TouchableOpacity>
@@ -471,8 +504,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     };
 
     function renderHistory(){
-        const roadName = tagData ? `${tagData.roadClass} Road (ID: ${tagData.id})` : "Lokasi";
-        
+
         return(
             <View style={{ flex: 1 }}>
                 {/* Header Riwayat */}
@@ -488,8 +520,14 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                 <ScrollView contentContainerStyle={styles.contentContainer}>
                     {isLoadingHistory ? (
                         <Text style={{ textAlign: 'center', marginTop: 20 }}>Memuat riwayat...</Text>
-                    ) : (
-                        versionHistory.map((ver) => {
+                    ) : versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id).length === 0 ? (
+                        <Text style={{ textAlign: 'center', marginTop: 20, color: '#6B7280' }}>
+                            Belum ada riwayat versi lain untuk jalan ini.
+                        </Text>
+                    ) :
+                    (
+                        versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id)
+                            .map((ver) => {
                             const totalVotes = ver.approveCount + ver.rejectCount;
                             const approvePercentage = totalVotes > 0 ? Math.round((ver.approveCount / totalVotes) * 100) : 0;
                             const isThumbsUp = approvePercentage >= 50;

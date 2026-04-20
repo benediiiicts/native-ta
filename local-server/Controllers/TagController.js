@@ -101,7 +101,7 @@ async function handleVote(req, res){
 async function fetchVersionHistory(req, res){
     try{
         const tagId = req.params.id
-        const result = await fetchVersionHistory(tagId)
+        const result = await getVersionHistory(tagId)
 
         return res.status(result.status).json({
             status: result.status,

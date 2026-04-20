@@ -418,7 +418,7 @@ async function countRelevanceScore(){
 
             for(let version of road.versions){
                 //hitung usia dalam hari
-                const ageInMs = Date.now() = new Date(version.createdAt).getTime()
+                const ageInMs = Date.now() - new Date(version.createdAt).getTime()
                 const ageInDays = ageInMs / (100*60*60*24)
 
                 // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
