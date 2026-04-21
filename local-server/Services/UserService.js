@@ -2,6 +2,8 @@ import 'dotenv/config';
 import {user} from "../Models/UserModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { tagVersions } from '../Models/TagModel.js';
+import { comments } from '../Models/MediaModel.js';
 
 async function hashPassword(_password){
     const saltRounds = await bcrypt.genSalt(10)
@@ -138,8 +140,50 @@ async function getUser(_email){
     }
 }
 
+async function getUserProfile(targetUserId){
+    try{
+        const targetUser = await user.findByPk(targetUserId, {
+            attributes: ['id', 'username', 'email', 'createdAt']
+        })
+
+        if(!targetUser){
+            return{
+                status: 404,
+                message: "user not found"
+            }
+        }
+
+        const tagCount = await tagVersions.count({
+            where: { userId: targetUserId }
+        })
+        const commentCount = await comments.count({
+            where: { userId: targetUserId}
+        })
+
+        return{
+            status: 200,
+            data:{
+                ...targetUser.toJSON(),
+                stats:{
+                    tagCount,
+                    commentCount
+                }
+            },
+            message: "User profile successfully fetched"
+        }
+    }
+    catch(error){
+        console.error(`Error while fetching user profile: ${error}`)
+        return{
+            status: 500,
+            message: "Internal server error while fetching user profile"
+        }
+    }
+}
+
 export {
     getUser, 
     createUser,
-    checkCredentials
+    checkCredentials,
+    getUserProfile
 }

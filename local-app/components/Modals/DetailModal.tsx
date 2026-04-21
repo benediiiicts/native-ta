@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { TouchableWithoutFeedback, Dimensions, TextInput, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import WarningModal from "@/components/Modals/WarningModal";
 import AddVersionModal from './AddVersionModal';
+import UserProfileModal from "./UserProfileModal";
 
 interface DetailModalProps {
     visible: boolean;
@@ -50,6 +51,10 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [historyMode, setHistoryMode] = useState(false);
     const [versionHistory, setVersionHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    //untuk modal profile
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
     //untuk nama jalan
     const [roadName, setRoadName] = useState("Memuat Lokasi...");
@@ -476,7 +481,19 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     </View>
                 </View>
 
-                <Text style={styles.authorText}>Dilaporkan oleh: {activeVersion.author?.username || 'Anonymous'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                    <Text style={{ fontSize: 15, color: "#4B5563" }}>Dilaporkan oleh: </Text>
+                    <TouchableOpacity onPress={() => {
+                        if (activeVersion.author?.id) {
+                            setSelectedUserId(activeVersion.author.id);
+                            setProfileModalVisible(true);
+                        }
+                    }}>
+                        <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#3B82F6' }}>
+                            {activeVersion.author?.username || 'Anonymous'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
 
                 <Text style={styles.descLabel}>Description:</Text>
                 <View style={styles.descBox}>
@@ -731,7 +748,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     </TouchableWithoutFeedback>
                 </View>
             </TouchableWithoutFeedback>
-            
+
             {tagId && (
                 <AddVersionModal
                     visible={addVersionVisible}
@@ -742,6 +759,15 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     }}
                 />
             )}
+
+            <UserProfileModal
+                visible={profileModalVisible}
+                onClose={() => setProfileModalVisible(false)}
+                userId={selectedUserId}
+                onReportPress={(id, name) => {
+                    console.log(`Buka form report untuk user: ${name} (ID: ${id})`);
+                }}
+            />
         </Modal>
     );
 }

@@ -1,4 +1,4 @@
-import {getUser, createUser, checkCredentials} from "../Services/UserService.js"
+import {getUser, createUser, checkCredentials, getUserProfile} from "../Services/UserService.js"
 
 async function userLogin(req, res){
     try{
@@ -45,8 +45,24 @@ async function getUserByEmail(req, res){
     }
 }
 
+async function fetchUserProfile(req, res){
+    try{
+        const userId = req.params.id
+        const result = await getUserProfile(userId)
+
+        return res.status(result.status).json(result)
+    }
+    catch(error){
+        console.error(`Cannot get user profile: ${error}`)
+        return res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
 export {
     userLogin,
     userRegister,
-    getUserByEmail
+    getUserByEmail,
+    fetchUserProfile
 }
