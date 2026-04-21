@@ -60,8 +60,9 @@ async function fetchTagDetails(req, res){
         if (!tagId || tagId === 'undefined') {
             return res.status(400).json({ message: "ID Tag tidak valid" });
         }
+        const versionId = req.query?.versionId || null
         const userId = req.user?.id || null; 
-        const tagDetails = await getTagDetail(tagId, userId);
+        const tagDetails = await getTagDetail(tagId, userId, versionId);
 
         return res.status(tagDetails.status).json({
             status: tagDetails.status,

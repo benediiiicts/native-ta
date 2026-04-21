@@ -31,7 +31,7 @@ function optionalAuth(req, res, next){
         return next()
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, user) => {
         if (err) {
             req.user = null;//masuk sebagai guest
             return next();
