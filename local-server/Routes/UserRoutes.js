@@ -1,5 +1,5 @@
 import express, { Router } from 'express'
-import { userLogin, userRegister, getUserByEmail } from '../Controllers/UserController.js'
+import { userLogin, userRegister, getUserByEmail, fetchUserProfile } from '../Controllers/UserController.js'
 
 const router = Router()
 
@@ -9,5 +9,6 @@ router.post('/register', userRegister)
 
 //get
 router.get('/user/:email', getUserByEmail)
+router.get('/:id/profile', fetchUserProfile)
 
 export default router
