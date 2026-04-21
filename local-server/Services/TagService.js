@@ -140,14 +140,31 @@ async function getTagRoad(_tagRoadId){
     }
 }
 
-async function getTagDetail(_tagId, _userId=null){
+async function getTagDetail(_tagId, _userId=null, _versionId=null){
     try{
+        let targetVersionId = _versionId
+
+        if(!targetVersionId){
+            const road = await tagRoads.findOne({ where: { id: _tagId, isHidden: false } });
+            if(!road){
+                return{
+                    status: 404,
+                    data: null,
+                    message: "Tag roads not found"
+                }
+            }
+            targetVersionId = road.activeVersionId
+        }
+
+        const currVersion = { id: targetVersionId };
+
         const detail = await tagRoads.findOne({
             where: {id: _tagId, isHidden: false},
             include:[
                 {
                     model: tagVersions,
-                    as: 'activeVersion',
+                    as: 'versions',
+                    where: currVersion,
                     include:[
                         {model: user, as: 'author', attributes: ['id', 'username']},
                         {model: versionImages, as: 'images', attributes: ['imageUrl']}, 
@@ -161,18 +178,21 @@ async function getTagDetail(_tagId, _userId=null){
             ]
         })
 
-        if (!detail) {
+        if (!detail || !detail.versions || detail.versions.length === 0) {
             return {
                 status: 404,
                 data: null,
                 message: "Data laporan jalan tidak ditemukan."
             }
-        }
+        }        
+        const result = detail.toJSON()
+        result.activeVersion = result.versions[0]
+        delete result.versions
 
         let currentUserVote = null
-        if(_userId && detail.activeVersion){
+        if(_userId && result.activeVersion){
             const vote = await userVotes.findOne({
-                where: { userId: _userId, tagVersionId: detail.activeVersion.id }
+                where: { userId: _userId, tagVersionId: result.activeVersion.id }
             });
 
             if (vote) {
@@ -180,7 +200,6 @@ async function getTagDetail(_tagId, _userId=null){
             }
         }
 
-        const result = detail.toJSON()
         result.currentUserVote = currentUserVote;
 
         return {
@@ -357,15 +376,18 @@ async function voteTagVersion(_userId, _tagId, _voteType){
             const ageInMs = Date.now() - new Date(version.createdAt).getTime();
             const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
-            // Rumus time decay: (Approve - Reject + 1) / (Age + 1)^1.5
-            const baseVotes = (version.approveCount - version.rejectCount) + 1;
+            // Rumus time decay: (Approve - Reject) / (Age + 1)^1.5
+            const baseVotes = (version.approveCount - version.rejectCount);
             const newScore = baseVotes / Math.pow((ageInDays + 1), 1.5);
 
             await version.update({ score: newScore }, { transaction: t });
 
             // Cari versi dengan skor tertinggi untuk jalan ini
             const bestVersion = await tagVersions.findOne({
-                where: { tagRoadId: version.tagRoadId },
+                where: { 
+                    tagRoadId: version.tagRoadId,
+                    approveCount: { [Op.gte]: 3 }
+                },
                 order: [['score', 'DESC']],
                 transaction: t
             });
@@ -413,13 +435,13 @@ async function countRelevanceScore(){
         for(let road of roads){
             if(!road.versions || road.versions.length == 0) continue
             
-            let highestScore = -1
+            let highestScore = -Infinity
             let bestVersionId = null
 
             for(let version of road.versions){
                 //hitung usia dalam hari
                 const ageInMs = Date.now() - new Date(version.createdAt).getTime()
-                const ageInDays = ageInMs / (100*60*60*24)
+                const ageInDays = ageInMs / (1000*60*60*24)
 
                 // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
                 const baseVote = (version.approveCount - version.rejectCount) + 1
@@ -430,14 +452,13 @@ async function countRelevanceScore(){
                     score: decayScore
                 })
 
-                if(decayScore > highestScore){
+                if(version.approveCount >= 3 && decayScore > highestScore){
                     highestScore = decayScore
                     bestVersionId = version.id
                 }
-                
             }
 
-            if(bestVersionId && road.bestVersionId !== bestVersionId){
+            if(bestVersionId && road.activeVersionId !== bestVersionId){
                 await road.update({
                     activeVersionId: bestVersionId
                 })
