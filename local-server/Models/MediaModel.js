@@ -59,33 +59,37 @@ const comments = sequelize.define('Comment',
 
 const reports = sequelize.define('Report',
     {
-        id:{
+        id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             primaryKey: true,
             autoIncrement: true
         },
-        userId:{
+        userId: {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        targetType:{
+        targetType: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        targetId:{
+        targetId: {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        description:{
+        reason: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        description: {
             type: DataTypes.TEXT,
-            allowNull: false
+            allowNull: true 
         },
-        imageUrl:{
-            type: DataTypes.STRING,
-            allowNull: false
+        imageUrls: {
+            type: DataTypes.JSON,
+            allowNull: true 
         },
-        status:{
+        status: {
             type: DataTypes.ENUM('Pending', 'Reviewed', 'Resolved', 'Rejected'),
             allowNull: false,
             defaultValue: 'Pending'

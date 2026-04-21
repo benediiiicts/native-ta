@@ -3,6 +3,7 @@ import cors from 'cors'
 import cron from 'node-cron'
 import userRouter from './Routes/UserRoutes.js'
 import tagRouter from './Routes/TagRoutes.js'
+import reportRouter from './Routes/ReportRoutes.js';
 import sequelize from './database.js'
 import 'dotenv/config';
 import setupAssociations from './Models/associations.js';
@@ -31,6 +32,7 @@ cron.schedule('0 0 * * *', () => {
 const port = 8080
 app.use('/api/users', userRouter)
 app.use('/api/tags', tagRouter)
+app.use('/api/reports', reportRouter)
 
 app.use('/uploads', express.static('uploads'));
 

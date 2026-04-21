@@ -437,7 +437,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                         ]}>
                             <Ionicons name={isMainVersion ? "star" : "time"} size={12} color="white" style={styles.badgeIcon} />
                             <Text style={styles.badgeText}>
-                                {isMainVersion ? "Versi Utama" : "Versi Terdahulu"}
+                                {isMainVersion ? "Versi Utama" : ""}
                             </Text>
                         </View>
 
