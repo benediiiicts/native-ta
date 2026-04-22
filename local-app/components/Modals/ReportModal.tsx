@@ -9,7 +9,7 @@ import styles from '@/styles/ReportModal.styles';
 
 interface ReportModalProps{
     visible: boolean
-    onClose: () => {}
+    onClose: () => void
     targetType: 'User' | 'TagVersion' | 'Comment' | null
     targetId: number | null
     targetName?: string
