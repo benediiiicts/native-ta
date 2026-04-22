@@ -1,5 +1,5 @@
 import React, { useState, useEffect, use } from 'react';
-import { View, Text, Modal, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { Alert, View, Text, Modal, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import WarningModal from "@/components/Modals/WarningModal";
@@ -105,6 +105,57 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
         }
     }
 
+    async function takePhoto(){
+        if(images.length >= 3){
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
+        if(!permissionResult.granted){
+            showWarning('Izin Diperlukan', 'Izin untuk mengakses kamera diperlukan.');
+            return;
+        }
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: false,
+            aspect: [4, 3],
+            quality: 0.8,
+        })
+        if(!result.canceled){
+            const capturedFile = result.assets[0]
+            const mimeType = capturedFile.mimeType || 'image/jpeg';
+            if (!mimeType.startsWith('image/')) {
+                showWarning("File Ditolak", "Format file tidak didukung.");
+                return;
+            }
+
+            setImages([...images, capturedFile]);
+        }
+    }
+
+    function handleAddImage(){
+        if (images.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+
+        if (Platform.OS === 'web') {
+            //di web hanya berikan pilihan upload, tidak ada buka kamera
+            pickImage();
+        } else {
+            // di mobile, munculkan pilihan upload/kamera
+            Alert.alert(
+                "Tambah Gambar",
+                "Pilih dari mana Anda ingin mengambil gambar",
+                [
+                    { text: "Buka Kamera", onPress: takePhoto },
+                    { text: "Pilih dari Galeri", onPress: pickImage },
+                    { text: "Batal", style: "cancel" }
+                ]
+            );
+        }
+    }
+
     function removeImage(indexToRemove: number){
         setImages(images.filter((_, index) => index !== indexToRemove))
     }
@@ -159,8 +210,11 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
 
             const jsonResponse = await response.json()
             if(jsonResponse.status == 201){
-                showWarning("Laporan berhasil dikirim", "Terima kasih atas kontribusi anda")
-                onClose()
+                showWarning(
+                    "Laporan berhasil dikirim", 
+                    "Terima kasih atas kontribusi anda.", 
+                    () => onClose() 
+                );
             }
             else{
                 showWarning("Gagal", jsonResponse.message || "Terjadi kesalahan pada server")
@@ -233,7 +287,7 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
                                 </View>
                             ))}
                             {images.length < 3 && (
-                                <TouchableOpacity style={styles.addImageBtn} onPress={pickImage}>
+                                <TouchableOpacity style={styles.addImageBtn} onPress={handleAddImage}>
                                     <FontAwesome5 name="camera" size={24} color="#9CA3AF" />
                                     <Text style={{color: '#9CA3AF', fontSize: 12, marginTop: 5}}>Tambah</Text>
                                 </TouchableOpacity>
