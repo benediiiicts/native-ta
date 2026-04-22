@@ -17,7 +17,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
-function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagSelect}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any }){
+function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagSelect, currentUserLocation}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any; currentUserLocation: {latitude: number, longitude: number}}){
     let [road, setRoad] = useState<any[]>([])
 
     useEffect(()=>{
@@ -28,9 +28,8 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
 
     return (
         <MapContainer
-            //sementara menggunakan lokasi statik bandung
-            //kedepannya akan ambil lokasi pengguna
-            center={[-6.9175, 107.6191]}
+            //ambil lokasi pengguna
+            center={[currentUserLocation?.latitude, currentUserLocation?.longitude]}
             zoom={14}        
             style={{ height: '100%', width: '100%' }} 
         >

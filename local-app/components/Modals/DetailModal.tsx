@@ -278,7 +278,19 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
     async function getRoadName(lat: number, lon: number){
         try{
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+            const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
+            const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+
+            let requestHeaders: any = {
+                'Accept': 'application/json'
+            }
+
+            if (Platform.OS !== 'web') {
+                requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`;
+            }
+            const response = await fetch(apiUrl, {
+                headers: requestHeaders
+            })
             const jsonResponse = await response.json()
             if(jsonResponse && jsonResponse.address){
                 const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"

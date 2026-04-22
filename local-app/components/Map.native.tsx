@@ -25,7 +25,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     }
 }
 
-function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelect }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any}) {
+function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelect, currentUserLocation }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any; currentUserLocation: {latitude: number, longitude: number}}) {
     let [road, setRoad] = useState<any[]>([]);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
@@ -69,8 +69,8 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
     useEffect(()=>{
         if(active && mapRef.current){
             mapRef.current.animateToRegion({
-                    latitude: -6.9175,
-                    longitude: 107.6191,
+                    latitude: currentUserLocation.latitude,
+                    longitude: currentUserLocation.longitude,
                     latitudeDelta: 0.002,
                     longitudeDelta: 0.002,
             }, 1000)
@@ -94,8 +94,8 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                 style={styles.map}
                 onRegionChangeComplete={handleRegionChange}
                 region={{
-                    latitude: -6.9175,
-                    longitude: 107.6191,
+                    latitude: currentUserLocation.latitude,
+                    longitude: currentUserLocation.longitude,
                     latitudeDelta: 0.05,
                     longitudeDelta: 0.05,
                 }}
