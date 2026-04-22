@@ -7,6 +7,7 @@ import { TouchableWithoutFeedback, Dimensions, TextInput, Modal, Platform, Scrol
 import WarningModal from "@/components/Modals/WarningModal";
 import AddVersionModal from './AddVersionModal';
 import UserProfileModal from "./UserProfileModal";
+import ReportModal from "./ReportModal";
 
 interface DetailModalProps {
     visible: boolean;
@@ -55,6 +56,12 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     //untuk modal profile
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+
+    // State untuk Report Modal
+    const [reportVisible, setReportVisible] = useState(false);
+    const [reportTargetType, setReportTargetType] = useState<'User' | 'TagVersion' | 'Comment' | null>(null);
+    const [reportTargetId, setReportTargetId] = useState<number | null>(null);
+    const [reportTargetName, setReportTargetName] = useState<string>('');
 
     //untuk nama jalan
     const [roadName, setRoadName] = useState("Memuat Lokasi...");
@@ -475,7 +482,13 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                             <FontAwesome5 name="pen" size={20} color="#374151" />
                         </TouchableOpacity>
                         
-                        <TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={() => {
+                                setReportTargetType('TagVersion');
+                                setReportTargetId(activeVersion.id);
+                                setReportVisible(true);
+                            }}
+                        >
                             <MaterialIcons name="report" size={28} color="#374151" />
                         </TouchableOpacity>
                     </View>
@@ -690,9 +703,18 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
                                 return (
                                     <View key={index} style={styles.commentItemWrapper}>
-                                        <Text style={styles.commentAuthorText}>
-                                            {comment.commentAuthor?.username || 'Anonymous'}
-                                        </Text>
+                                        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                                            <Text style={styles.commentAuthorText}>
+                                                {comment.commentAuthor?.username || 'Anonymous'}
+                                            </Text>
+                                            <TouchableOpacity onPress={() => {
+                                                setReportTargetType('Comment');
+                                                setReportTargetId(comment.id);
+                                                setReportVisible(true);
+                                            }}>
+                                                <MaterialIcons name="more-vert" size={20} color="#9CA3AF" />
+                                            </TouchableOpacity>
+                                        </View>
                                         <Text style={styles.commentContentText}>
                                             {comment.content}
                                         </Text>
@@ -760,12 +782,23 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                 />
             )}
 
+            <ReportModal 
+                visible={reportVisible}
+                onClose={() => setReportVisible(false)}
+                targetType={reportTargetType}
+                targetId={reportTargetId}
+                targetName={reportTargetName}
+            />
+
             <UserProfileModal
                 visible={profileModalVisible}
                 onClose={() => setProfileModalVisible(false)}
                 userId={selectedUserId}
                 onReportPress={(id, name) => {
-                    console.log(`Buka form report untuk user: ${name} (ID: ${id})`);
+                    setReportTargetType('User');
+                    setReportTargetId(id);
+                    setReportTargetName(name);
+                    setReportVisible(true);
                 }}
             />
         </Modal>
