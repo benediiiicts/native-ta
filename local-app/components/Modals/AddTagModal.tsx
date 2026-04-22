@@ -1,11 +1,11 @@
+import WarningModal from "@/components/Modals/WarningModal";
 import styles from "@/styles/AddTagModal.styles";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from "react";
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import ConfirmModal from "./ConfirmationModal"; 
-import WarningModal from "@/components/Modals/WarningModal";
+import ConfirmModal from "./ConfirmationModal";
 
 interface AddTagModalProps {
     visible: boolean;
@@ -13,6 +13,8 @@ interface AddTagModalProps {
     onPickLocation: () => void;
     selectedLocation: any;
     onTagAdded?: () => void;
+    currentUserLocation: {latitude: number, longitude: number} | null
+    onSetLocation: (location: any) => void
 }
 
 async function getStorageValue(key: string){
@@ -37,7 +39,7 @@ export const TAG_TYPES = [
     'Penutupan / Proyek Jalan'
 ];
 
-function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded }: AddTagModalProps) {
+function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded, currentUserLocation, onSetLocation }: AddTagModalProps) {
     const tokenKey = 'userToken';
    
     const [description, setDescription] = useState("");
@@ -131,6 +133,58 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
             }
 
             setTempImages([...tempImages, capturedFile]);
+        }
+    }
+
+    async function handleUserCurrentLocation(){
+        if(!currentUserLocation){
+            showWarning("Lokasi Belum Tersedia", "Mohon tunggu sebentar hingga GPS menemukan lokasi Anda, atau pastikan GPS menyala.");
+            return;
+        }
+        setIsLoading(true)
+        try{
+            const {latitude, longitude} = currentUserLocation
+            const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
+            const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+
+            let requestHeaders: any = {
+                'Accept': 'application/json'
+            }
+
+            if (Platform.OS !== 'web') {
+                requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`;
+            }
+            const response = await fetch(apiUrl, {
+                headers: requestHeaders
+            })
+            const jsonResponse = await response.json()
+            
+            let roadName = "Jalan Tidak Dikenal"
+            let roadClass = "Unclassified"
+
+            if(jsonResponse && jsonResponse.address){
+                roadName = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || "Jalan Tidak Dikenal";
+            }
+
+            if(onSetLocation){
+                onSetLocation({
+                    latitude: latitude,
+                    longitude: longitude,
+                    name: roadName,
+                    roadClass: roadClass
+                });
+            }
+
+            if(roadName === "Jalan Tidak Dikenal" || !jsonResponse.address?.road){
+                showWarning("Info Lokasi", "Lokasi anda saat ini tidak berada ada jalan utama, titik anda akan ditempatkan ke posisi jalan terdekat")
+            }
+        }
+        catch(error){
+            console.error(`Geocoding error: ${error}`)
+            showWarning("Gagal", "Tidak dapat mengambil nama jalan dari lokasi Anda saat ini.");
+        }
+        finally{
+            setIsLoading(false)
         }
     }
 
@@ -302,8 +356,12 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     )}
                 </ScrollView>
 
-                <View style={styles.labelRow}>
+                <View style={[styles.labelRow, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
                     <Text style={styles.label}>Location</Text>
+                    <TouchableOpacity onPress={handleUserCurrentLocation} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="crosshairs-gps" size={16} color="#3B82F6" />
+                        <Text style={{ fontSize: 12, color: '#3B82F6', marginLeft: 4, fontWeight: 'bold' }}>Gunakan Lokasi Saat Ini</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity 
@@ -311,12 +369,12 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     onPress={onPickLocation}
                     activeOpacity={0.7}
                 >
-                <Text style={[styles.textInput, { color: selectedLocation ? "#000" : "#888", marginTop: 12 }]}>
-                    {locationText}
-                </Text>
-                <View style={styles.iconButton}>
-                    <MaterialCommunityIcons name="map-marker-radius" size={20} color="#333" />
-                </View>
+                    <Text style={[styles.textInput, { color: selectedLocation ? "#000" : "#888", marginTop: 12 }]}>
+                        {locationText}
+                    </Text>
+                    <View style={styles.iconButton}>
+                        <MaterialCommunityIcons name="map-marker-radius" size={20} color="#333" />
+                    </View>
                 </TouchableOpacity>
 
                 <Text style={styles.label}>Select tag type</Text>
