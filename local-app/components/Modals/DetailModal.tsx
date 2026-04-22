@@ -3,9 +3,11 @@ import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@
 import { Image } from "expo-image";
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, TextInput, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { TouchableWithoutFeedback, Dimensions, TextInput, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import WarningModal from "@/components/Modals/WarningModal";
 import AddVersionModal from './AddVersionModal';
+import UserProfileModal from "./UserProfileModal";
+import ReportModal from "./ReportModal";
 
 interface DetailModalProps {
     visible: boolean;
@@ -29,8 +31,10 @@ async function getStorageValue(key: string){
 function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const tokenKey = 'userToken';
 
+    //untuk data detail tag
     const [isLoading, setIsLoading] = useState(false)
     const [tagData, setTagData] = useState<any>(null)
+    const [viewedVersionId, setViewedVersionId] = useState<number | null>(null);
 
     //untuk slide image
     const [activeIndex, setActiveIndex] = useState(0)
@@ -48,6 +52,19 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     const [historyMode, setHistoryMode] = useState(false);
     const [versionHistory, setVersionHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    //untuk modal profile
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+
+    // State untuk Report Modal
+    const [reportVisible, setReportVisible] = useState(false);
+    const [reportTargetType, setReportTargetType] = useState<'User' | 'TagVersion' | 'Comment' | null>(null);
+    const [reportTargetId, setReportTargetId] = useState<number | null>(null);
+    const [reportTargetName, setReportTargetName] = useState<string>('');
+
+    //untuk nama jalan
+    const [roadName, setRoadName] = useState("Memuat Lokasi...");
 
     //untuk add version
     const [addVersionVisible, setAddVersionVisible] = useState(false);
@@ -70,9 +87,11 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         else{
             setTagData(null)
             setCommentMode(false)
+            setHistoryMode(false)
             setActiveIndex(0)
+            setViewedVersionId(null)
         }
-    }, [visible, tagId])
+    }, [visible, tagId, viewedVersionId])
 
     function showWarning(title: string, message: string, onConfirmAction?: () => void){
         setWarningTitle(title);
@@ -91,7 +110,10 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         setIsLoading(true)
         try{
             const token = await getStorageValue(tokenKey)
-            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads/${tagId}/detail`
+            let apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads/${tagId}/detail`
+            if(viewedVersionId){
+                apiUrl += `?versionId=${viewedVersionId}`
+            }
             const headers: any = {};
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
@@ -102,6 +124,8 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             if(jsonResponse.data){
                 setTagData(jsonResponse.data)
                 setTagComments(jsonResponse.data.activeVersion?.comments || [])
+                //untuk ambil nama jalan
+                getRoadName(jsonResponse.data.latitude, jsonResponse.data.longitude);
             }
         }
         catch(error){
@@ -153,7 +177,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                 const uriParts = tempCommentImage.uri.split('.')
                 const fileExtension = uriParts.length > 1 ? uriParts[uriParts.length - 1].toLowerCase() : 'jpg';
 
-                if(Platform.OS == 'web'){
+                if(Platform.OS === 'web'){
                     const imgResponse = await fetch(tempCommentImage.uri)
                     const blob = await imgResponse.blob()
                     formData.append("images", blob, `comment_${Date.now()}.${fileExtension}`)
@@ -177,7 +201,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             })
 
             const jsonResponse = await response.json()
-            if(jsonResponse.status == 201){
+            if(jsonResponse.status === 201){
                 setNewComment('')
                 setTempCommentImage(null)
                 reloadComments()
@@ -219,7 +243,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             )
 
             const jsonResponse = await response.json()
-            if(jsonResponse.status == 200 || jsonResponse.status == 201){
+            if(jsonResponse.status === 200 || jsonResponse.status === 201){
                 fetchTagDetail()
             }
             else{
@@ -240,7 +264,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/tag-roads/${tagId}/versions`;
             const response = await fetch(apiUrl)
             const jsonResponse = await response.json()
-            if(jsonResponse.status == 200 && jsonResponse.data){
+            if(jsonResponse.status === 200 && jsonResponse.data){
                 setVersionHistory(jsonResponse.data)
             }
         }
@@ -252,21 +276,53 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
         }
     }
 
-    function scrollToImage (index: number){
-        if (scrollViewRef.current && sliderWidth > 0) {
-            scrollViewRef.current.scrollTo({
-                x: index * sliderWidth,
-                y: 0,
-                animated: true
-            });
-            setActiveIndex(index)
+    async function getRoadName(lat: number, lon: number){
+        try{
+            const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
+            const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+
+            let requestHeaders: any = {
+                'Accept': 'application/json'
+            }
+
+            if (Platform.OS !== 'web') {
+                requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`;
+            }
+            const response = await fetch(apiUrl, {
+                headers: requestHeaders
+            })
+            const jsonResponse = await response.json()
+            if(jsonResponse && jsonResponse.address){
+                const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"
+                setRoadName(name)
+            }
+            else{
+                setRoadName('Unkown')
+            }
+        }
+        catch(error){
+            console.error(`Error while fetching road name: ${error}`)
+            setRoadName('Unkown')
         }
     }
 
-    function handleScroll(event: any){
-        const scrollPosition = event.nativeEvent.contentOffset.x
-        const index = Math.round(scrollPosition/ sliderWidth)
-        setActiveIndex(index)
+    const currentWidth = sliderWidth > 0 ? sliderWidth : (Platform.OS === 'web' ? 400 : Dimensions.get('window').width);
+
+    function scrollToImage(index: number) {
+        if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({
+                x: index * currentWidth,
+                y: 0,
+                animated: true
+            });
+            setActiveIndex(index);
+        }
+    }
+
+    function handleScroll(event: any) {
+        const scrollPosition = event.nativeEvent.contentOffset.x;
+        const index = Math.round(scrollPosition / currentWidth);
+        setActiveIndex(index);
     }
 
     function handleClose (){
@@ -277,10 +333,13 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
     function renderDetails(){
         if (isLoading || !tagData) 
-            return <Text style={{padding: 20}}>Loading...</Text>;
+            return <Text style={styles.loadingText}>Loading...</Text>;
 
         const activeVersion = tagData.activeVersion
         const images = activeVersion?.images || [];
+
+        const isMainVersion = tagData.activeVersionId == activeVersion.id
+        const isVerified = activeVersion.isVerified
 
         const totalVotes = activeVersion.approveCount + activeVersion.rejectCount
         let reliability = 0
@@ -292,7 +351,14 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
         return (
             <>
-            <View style={styles.imageWrapper} onLayout={(e) => {setSliderWidth(e.nativeEvent.layout.width)}}>
+            <View 
+                style={styles.imageWrapper} 
+                onLayout={(e) => {
+                    const newWidth = e.nativeEvent.layout.width;
+                    if (newWidth > 0 && newWidth !== sliderWidth) {
+                        setSliderWidth(newWidth);
+                    }
+                }}>
                 <ScrollView
                     ref={scrollViewRef}
                     horizontal
@@ -313,7 +379,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                                     <View 
                                         key={index} 
                                         style={{ 
-                                            width: sliderWidth > 0 ? sliderWidth : '100%',
+                                            width: currentWidth,
                                             height: '100%',
                                             justifyContent: 'center',
                                             alignItems: 'center'
@@ -321,17 +387,19 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                                     >
                                         <Image
                                             source={{uri: imageUrl}}
-                                            style={{ width: '100%', height: '100%' }} 
+                                            style={{ width: '100%', height: '100%', backgroundColor: "#E5E7EB" }} 
                                             contentFit="cover"
                                         />
                                     </View>
                                 )
                             })
                     ):(
-                        <View style={{ width: sliderWidth > 0 ? sliderWidth : Dimensions.get('window').width, height: '100%' }}>
+                        <View 
+                            style={{ width: currentWidth, height: '100%' }}
+                        >
                             <Image 
                                 source={{ uri: "https://via.placeholder.com/400x200?text=Tidak+Ada+Foto" }} 
-                                style={{ width: '100%', height: '100%' }} 
+                                style={{ width: '100%', height: '100%', backgroundColor: "#E5E7EB" }} 
                                 contentFit="cover"
                             />
                         </View>
@@ -341,7 +409,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                 {Platform.OS === 'web' && images.length > 1 && (
                     <>
                         <TouchableOpacity 
-                            style={[styles.arrowButton, { left: 10 }]} 
+                            style={[styles.arrowButton, styles.arrowButtonLeft]} 
                             onPress={() => scrollToImage(Math.max(0, activeIndex - 1))}
                             disabled={activeIndex === 0}
                         >
@@ -349,7 +417,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                         </TouchableOpacity>
 
                         <TouchableOpacity 
-                            style={[styles.arrowButton, { right: 10 }]} 
+                            style={[styles.arrowButton, styles.arrowButtonRight]} 
                             onPress={() => scrollToImage(Math.min(images.length - 1, activeIndex + 1))}
                             disabled={activeIndex === images.length - 1}
                         >
@@ -364,7 +432,7 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                             <TouchableOpacity 
                                 key={index} 
                                 onPress={() => scrollToImage(index)}
-                                style={{ padding: 5 }}
+                                style={styles.paginationDotWrapper}
                             >
                                 <View 
                                     style={[
@@ -381,6 +449,31 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     <Ionicons name="close-circle" size={32} color="#4B5563" />
                 </TouchableOpacity>
 
+                <View style={styles.badgeContainer}>
+                    <View style={styles.roadNameBadge}>
+                        <Text style={styles.roadNameBadgeText}>{roadName}</Text>
+                    </View>
+
+                    <View style={styles.statusBadgeRow}>
+                        <View style={[
+                            styles.versionBadge, 
+                            { backgroundColor: isMainVersion ? '#10B981' : '#6B7280' }
+                        ]}>
+                            <Ionicons name={isMainVersion ? "star" : "time"} size={12} color="white" style={styles.badgeIcon} />
+                            <Text style={styles.badgeText}>
+                                {isMainVersion ? "Versi Utama" : ""}
+                            </Text>
+                        </View>
+
+                        {isVerified && (
+                            <View style={styles.verifiedBadge}>
+                                <Ionicons name="shield-checkmark" size={12} color="white" style={styles.badgeIcon} />
+                                <Text style={styles.badgeText}>Terverifikasi</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
                 <View style={styles.streetLabel}>
                     <Text style={styles.streetLabelText}>{tagData.issueType}</Text>
                 </View>
@@ -394,21 +487,38 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     </View>
 
                     <View style={styles.actionGroup}>
-                        {/* untuk add version */}
                         <TouchableOpacity 
-                            style={{ marginRight: 15 }} 
+                            style={styles.addVersionButton} 
                             onPress={() => setAddVersionVisible(true)}
                         >
                             <FontAwesome5 name="pen" size={20} color="#374151" />
                         </TouchableOpacity>
-                        {/* untuk report version */}
-                        <TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            onPress={() => {
+                                setReportTargetType('TagVersion');
+                                setReportTargetId(activeVersion.id);
+                                setReportVisible(true);
+                            }}
+                        >
                             <MaterialIcons name="report" size={28} color="#374151" />
                         </TouchableOpacity>
                     </View>
                 </View>
 
-                <Text style={styles.authorText}>Dilaporkan oleh: {activeVersion.author?.username || 'Anonymous'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                    <Text style={{ fontSize: 15, color: "#4B5563" }}>Dilaporkan oleh: </Text>
+                    <TouchableOpacity onPress={() => {
+                        if (activeVersion.author?.id) {
+                            setSelectedUserId(activeVersion.author.id);
+                            setProfileModalVisible(true);
+                        }
+                    }}>
+                        <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#3B82F6' }}>
+                            {activeVersion.author?.username || 'Anonymous'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
 
                 <Text style={styles.descLabel}>Description:</Text>
                 <View style={styles.descBox}>
@@ -424,34 +534,40 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     <TouchableOpacity 
                         style={[
                             styles.outlineButton, 
-                            isVoting && { opacity: 0.5 },
-                            currentUserVote === 'Approve' && { backgroundColor: '#10B981', borderColor: '#10B981' },
+                            isVoting && styles.buttonDisabled,
+                            currentUserVote === 'Approve' && styles.outlineButtonApproveActive,
                         ]}
                         onPress={() => submitVote('Approve')}
                         disabled={isVoting}
                     >
                         <Text style={[
                             styles.outlineButtonText,
-                            currentUserVote === 'Approve' && { color: 'white' }
+                            currentUserVote === 'Approve' && styles.outlineButtonTextActive
                         ]}>Approve</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={[
                             styles.outlineButton, 
-                            isVoting && { opacity: 0.5 },
-                            currentUserVote === 'Reject' && { backgroundColor: '#EF4444', borderColor: '#EF4444' },
+                            isVoting && styles.buttonDisabled,
+                            currentUserVote === 'Reject' && styles.outlineButtonRejectActive,
                         ]}
                         onPress={() => submitVote('Reject')}
                         disabled={isVoting}
                     >
                         <Text style={[
                             styles.outlineButtonText,
-                            currentUserVote === 'Reject' && { color: 'white' }
+                            currentUserVote === 'Reject' && styles.outlineButtonTextActive
                         ]}>Reject</Text>
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.historyButton}>
+                <TouchableOpacity 
+                    style={styles.historyButton}
+                    onPress={() => {
+                        setHistoryMode(true);
+                        fetchVersionHistory();
+                    }}
+                >
                     <MaterialCommunityIcons name="history" size={24} color="#374151" />
                     <Text style={styles.historyText}>See other versions...</Text>
                 </TouchableOpacity>
@@ -471,10 +587,9 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     };
 
     function renderHistory(){
-        const roadName = tagData ? `${tagData.roadClass} Road (ID: ${tagData.id})` : "Lokasi";
-        
+
         return(
-            <View style={{ flex: 1 }}>
+            <View style={styles.flex1}>
                 {/* Header Riwayat */}
                 <View style={styles.commentHeader}>
                     <View style={styles.roadNamePill}>
@@ -487,35 +602,48 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
 
                 <ScrollView contentContainerStyle={styles.contentContainer}>
                     {isLoadingHistory ? (
-                        <Text style={{ textAlign: 'center', marginTop: 20 }}>Memuat riwayat...</Text>
-                    ) : (
-                        versionHistory.map((ver) => {
+                        <Text style={styles.centerMessageText}>Memuat riwayat...</Text>
+                    ) : versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id).length === 0 ? (
+                        <Text style={styles.emptyHistoryText}>
+                            Belum ada riwayat versi lain untuk jalan ini.
+                        </Text>
+                    ) :
+                    (
+                        versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id)
+                            .map((ver) => {
                             const totalVotes = ver.approveCount + ver.rejectCount;
                             const approvePercentage = totalVotes > 0 ? Math.round((ver.approveCount / totalVotes) * 100) : 0;
                             const isThumbsUp = approvePercentage >= 50;
 
                             return (
-                                <View key={ver.id} style={styles.historyCard}>
-                                    <View style={styles.cardHeader}>
-                                        <FontAwesome5 
-                                            name={ver.status === 'Sudah Diperbaiki' ? "check-circle" : "exclamation-triangle"} 
-                                            size={20} 
-                                            color={ver.status === 'Sudah Diperbaiki' ? "#10B981" : "#F59E0B"} 
-                                        />
-                                        <Text style={styles.statusText}>{ver.status}</Text>
-                                    </View>
-                                    
-                                    <View style={styles.cardBody}>
-                                        <View>
-                                            <Text style={styles.authorText}>Created by {ver.author?.username}</Text>
-                                            <Text style={styles.dateText}>{new Date(ver.createdAt).toLocaleDateString('id-ID')}</Text>
+                                <TouchableOpacity 
+                                    key={ver.id} 
+                                    style={styles.historyCard}
+                                    onPress={() => {
+                                        setViewedVersionId(ver.id)
+                                        setHistoryMode(false)
+                                    }}
+                                    >
+                                        <View style={styles.cardHeader}>
+                                            <FontAwesome5 
+                                                name={ver.status === 'Sudah Diperbaiki' ? "check-circle" : "exclamation-triangle"} 
+                                                size={20} 
+                                                color={ver.status === 'Sudah Diperbaiki' ? "#10B981" : "#F59E0B"} 
+                                            />
+                                            <Text style={styles.statusText}>{ver.status}</Text>
                                         </View>
-                                        <View style={styles.voteContainer}>
-                                            <FontAwesome5 name={isThumbsUp ? "thumbs-up" : "thumbs-down"} size={18} color="#374151" />
-                                            <Text style={styles.voteText}>{approvePercentage}%</Text>
+                                        
+                                        <View style={styles.cardBody}>
+                                            <View>
+                                                <Text style={styles.authorText}>Created by {ver.author?.username}</Text>
+                                                <Text style={styles.dateText}>{new Date(ver.createdAt).toLocaleDateString('id-ID')}</Text>
+                                            </View>
+                                            <View style={styles.voteContainer}>
+                                                <FontAwesome5 name={isThumbsUp ? "thumbs-up" : "thumbs-down"} size={18} color="#374151" />
+                                                <Text style={styles.voteText}>{approvePercentage}%</Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                </View>
+                                </TouchableOpacity>
                             );
                         })
                     )}
@@ -527,18 +655,18 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
     function renderComments () {
 
         return(
-            <View style={{ flex: 1 }}>
+            <View style={styles.flex1}>
                 <View style={styles.commentHeader}>
                     <View style={styles.commentsLeft}>
                         <Ionicons name="chatbubble-outline" size={24} color="#1F2937" />
                         <Text style={styles.commentsText}>Comments ({tagComments.length})</Text>
                     </View>
                     
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={styles.commentHeaderRight}>
                         <TouchableOpacity 
                             onPress={reloadComments} 
                             disabled={isReloadingComments}
-                            style={{ marginRight: 15, padding: 5 }}
+                            style={styles.refreshButton}
                         >
                             <Ionicons 
                                 name="refresh" 
@@ -554,21 +682,21 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                 </View>
 
                 <ScrollView contentContainerStyle={styles.contentContainer}>
-                    <View style={{ marginBottom: 20, padding: 10, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
+                    <View style={styles.commentInputContainer}>
                         <TextInput
-                            style={{ backgroundColor: 'white', padding: 10, borderRadius: 8, minHeight: 60, textAlignVertical: 'top' }}
+                            style={styles.commentTextInput}
                             placeholder="Tulis komentar Anda..."
                             multiline
                             value={newComment}
                             onChangeText={setNewComment}
                         />
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>
+                        <View style={styles.commentSubmitRow}>
                             <TouchableOpacity 
-                                style={{ backgroundColor: '#3B82F6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+                                style={styles.commentSubmitButton}
                                 onPress={submitComment}
                                 disabled={isSubmittingComment}
                             >
-                                <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                                <Text style={styles.commentSubmitText}>
                                     {isSubmittingComment ? "Mengirim..." : "Kirim"}
                                 </Text>
                             </TouchableOpacity>
@@ -586,18 +714,27 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                                 }
 
                                 return (
-                                    <View key={index} style={{ marginBottom: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
-                                        <Text style={{ fontWeight: 'bold', color: '#374151', marginBottom: 5 }}>
-                                            {comment.commentAuthor?.username || 'Anonymous'}
-                                        </Text>
-                                        <Text style={{ color: '#4B5563', marginBottom: 8 }}>
+                                    <View key={index} style={styles.commentItemWrapper}>
+                                        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                                            <Text style={styles.commentAuthorText}>
+                                                {comment.commentAuthor?.username || 'Anonymous'}
+                                            </Text>
+                                            <TouchableOpacity onPress={() => {
+                                                setReportTargetType('Comment');
+                                                setReportTargetId(comment.id);
+                                                setReportVisible(true);
+                                            }}>
+                                                <MaterialIcons name="more-vert" size={20} color="#9CA3AF" />
+                                            </TouchableOpacity>
+                                        </View>
+                                        <Text style={styles.commentContentText}>
                                             {comment.content}
                                         </Text>
                                         
                                         {commentImage && (
                                             <Image 
                                                 source={{ uri: commentImage }} 
-                                                style={{ width: '100%', height: 150, borderRadius: 8 }} 
+                                                style={styles.commentImageStyle} 
                                                 contentFit="cover"
                                             />
                                         )}
@@ -606,8 +743,8 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                             }
                         )
                     ): (
-                        <View style={{ alignItems: 'center', marginTop: 20 }}>
-                            <Text style={{ color: '#6B7280' }}>Belum ada komentar. Jadilah yang pertama!</Text>
+                        <View style={styles.emptyCommentContainer}>
+                            <Text style={styles.emptyCommentText}>Belum ada komentar. Jadilah yang pertama!</Text>
                         </View>
                     )}
 
@@ -623,26 +760,29 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
             animationType={Platform.OS === "web" ? "fade" : "slide"} 
             onRequestClose={handleClose}
         >
-            <Pressable style={styles.overlay} onPress={handleClose}>
-                <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-                    {historyMode 
-                        ? renderHistory() 
-                        : commentMode 
-                            ? renderComments() 
-                            : renderDetails()
-                    }
+            <TouchableWithoutFeedback onPress={handleClose}>
+                <View style={styles.overlay}>
+                    <TouchableWithoutFeedback>
+                        <View style={styles.modalContainer}>
+                            {historyMode 
+                                ? renderHistory() 
+                                : commentMode 
+                                    ? renderComments() 
+                                    : renderDetails()
+                            }
+                            <WarningModal
+                                visible={warningVisible}
+                                title={warningTitle}
+                                message={warningMessage}
+                                confirmText="OK"
+                                onConfirm={warningOnConfirm}
+                                onCancel={() => setWarningVisible(false)}
+                            />
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
 
-                    <WarningModal
-                        visible={warningVisible}
-                        title={warningTitle}
-                        message={warningMessage}
-                        confirmText="OK"
-                        onConfirm={warningOnConfirm}
-                        onCancel={() => setWarningVisible(false)}
-                    />
-                </Pressable>
-            </Pressable>
-            
             {tagId && (
                 <AddVersionModal
                     visible={addVersionVisible}
@@ -653,8 +793,28 @@ function DetailModal({ visible, onClose, tagId }: DetailModalProps) {
                     }}
                 />
             )}
+
+            <ReportModal 
+                visible={reportVisible}
+                onClose={() => setReportVisible(false)}
+                targetType={reportTargetType}
+                targetId={reportTargetId}
+                targetName={reportTargetName}
+            />
+
+            <UserProfileModal
+                visible={profileModalVisible}
+                onClose={() => setProfileModalVisible(false)}
+                userId={selectedUserId}
+                onReportPress={(id, name) => {
+                    setReportTargetType('User');
+                    setReportTargetId(id);
+                    setReportTargetName(name);
+                    setReportVisible(true);
+                }}
+            />
         </Modal>
     );
 }
 
-export default DetailModal
+export default DetailModal;

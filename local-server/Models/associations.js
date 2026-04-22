@@ -2,14 +2,19 @@ import { user } from './UserModel.js';
 import { tagRoads, tagVersions } from './TagModel.js';
 import { versionImages, comments } from './MediaModel.js';
 
-tagRoads.belongsTo(tagVersions, {foreignKey: 'activeVersionId', as: 'activeVersion'})
-tagRoads.hasMany(tagVersions, {foreignKey: 'activeVersionId', as: 'versions'})
+tagRoads.belongsTo(tagVersions, {
+    foreignKey: 'activeVersionId', 
+    as: 'activeVersion',
+    constraints: false
+});
+tagRoads.hasMany(tagVersions, {foreignKey: 'tagRoadId', as: 'versions'});
 
-tagVersions.belongsTo(user, {foreignKey: 'userId', as: 'author'})
-tagVersions.hasMany(versionImages, {foreignKey: 'tagVersionId', as: 'images'})
-tagVersions.hasMany(comments, {foreignKey: 'tagVersionId', as: 'comments'})
+tagVersions.belongsTo(tagRoads, {foreignKey: 'tagRoadId', as: 'road'})
+tagVersions.belongsTo(user, {foreignKey: 'userId', as: 'author'});
+tagVersions.hasMany(versionImages, {foreignKey: 'tagVersionId', as: 'images'});
+tagVersions.hasMany(comments, {foreignKey: 'tagVersionId', as: 'comments'});
 
-versionImages.belongsTo(tagVersions, { foreignKey: 'tagVersionId' })
+versionImages.belongsTo(tagVersions, { foreignKey: 'tagVersionId' });
 
 comments.belongsTo(tagVersions, { foreignKey: 'tagVersionId' });
 comments.belongsTo(user, { foreignKey: 'userId', as: 'commentAuthor' });

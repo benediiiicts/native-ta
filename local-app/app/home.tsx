@@ -1,12 +1,13 @@
-import { View, Button, Platform, Alert} from "react-native";
+import { ActivityIndicator, Text, View, Button, Platform, Alert} from "react-native";
 import Map from '../components/Map';
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import Navbar from '../components/Navbar';
 import DetailModal from "../components/Modals/DetailModal";
 import AddTagModal from "@/components/Modals/AddTagModal";
 import ConfirmModal from "@/components/Modals/ConfirmationModal";
 import * as SecureStore from 'expo-secure-store';
+import * as Location from 'expo-location';
 import WarningModal from "@/components/Modals/WarningModal";
 
 async function getStorageValue(key: string){
@@ -26,14 +27,14 @@ function Home() {
     const router = useRouter()
     const tokenKey = 'userToken';
 
-    let [isLogedIn, setisLogedIn] = useState(false)
+    const [isLogedIn, setisLogedIn] = useState(false)
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
 
     //state untuk modal konfirmasi
-    let [confirmLocationVisible, setConfirmLocationVisible] = useState(false);
-    let [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+    const [confirmLocationVisible, setConfirmLocationVisible] = useState(false);
+    const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
 
     //untuk modal warning
     const [warningVisible, setWarningVisible] = useState(false);
@@ -42,13 +43,18 @@ function Home() {
     const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
 
     const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
-    let [DetailModalVisible, setDetailModalVisible] = useState(false)
-    let [searchLocation, setSearchLocation] = useState<any>(null)
-    let [isSelectingLocation, setIsSelectingLocation] = useState(false)
-    let [addModalVisible, setAddModalVisible] = useState(false)
+    const [DetailModalVisible, setDetailModalVisible] = useState(false)
+    const [searchLocation, setSearchLocation] = useState<any>(null)
+    const [isSelectingLocation, setIsSelectingLocation] = useState(false)
+    const [addModalVisible, setAddModalVisible] = useState(false)
 
-    let [pickedLocation, setPickedLocation] = useState<any>(null)
-    let [tempLocation, setTempLocation] = useState<any>(null)
+    const [pickedLocation, setPickedLocation] = useState<any>(null)
+    const [tempLocation, setTempLocation] = useState<any>(null)
+
+    //untuk tracking lokasi saat ini
+    const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
+    const [locationError, setLocationError] = useState<string | null>(null)
+    const [isLocating, setIsLocating] = useState(true)
 
     useEffect(() => {
         const checkLogin = async () => {
@@ -64,6 +70,40 @@ function Home() {
     useEffect(() => {
         loadAllTags()
     }, [])
+
+    useEffect(() => {
+        getUserLocation();
+    }, []);
+
+    async function getUserLocation(){
+        setIsLocating(true)
+        try{
+            let {status} = await Location.requestForegroundPermissionsAsync()
+            if(status !== 'granted'){
+                setLocationError('Izin akses lokasi ditolak. Beberapa fitur mungkin tidak berfungsi optimal.');
+                showWarning("Izin ditolak", "Aplikasi membutuhkan akses lokasi untuk fitur pelaporan.")
+                setIsLocating(false)
+                return
+            }
+            let location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.High,
+            })
+
+            setCurrentLocation({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            })
+
+            setLocationError(null)
+        }
+        catch(error){
+            console.error(`Gagal mendapatkan lokasi: ${error}`)
+            setLocationError('Gagal mendapatkan lokasi GPS Anda.');
+        }
+        finally{
+            setIsLocating(false)
+        }
+    }
 
     async function handleLogout(){
         if(Platform.OS == 'web'){
@@ -165,12 +205,30 @@ function Home() {
 
     return (
         <View style={{ flex: 1 }}>
+            {currentLocation ? (
+                <Map 
+                    active={isSelectingLocation} 
+                    targetLocation={searchLocation} 
+                    onRoadSelect={handlePickLocation}
+                    tags={allTags}
+                    onTagSelect={handleSelectTag}
+                    currentUserLocation={currentLocation} 
+                />
+            ) : (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6' }}>
+                    <ActivityIndicator size="large" color="#3B82F6" />
+                    <Text style={{ marginTop: 10, color: '#6B7280' }}>
+                        {locationError ? locationError : "Mencari lokasi Anda..."}
+                    </Text>
+                </View>
+            )}
             <Map 
                 active={isSelectingLocation} 
                 targetLocation={searchLocation} 
                 onRoadSelect={handlePickLocation}
                 tags={allTags}
                 onTagSelect={handleSelectTag}
+                currentUserLocation={currentLocation}
             />
             {isSelectingLocation? (
                 <Navbar 
@@ -204,12 +262,7 @@ function Home() {
                         }}
                     />
                 )}
-                {isSelectingLocation && (
-                    <Button
-                        title="Close"
-                        onPress={() => setDetailModalVisible(!DetailModalVisible)}
-                    />
-                )}
+                
             </View>
             <AddTagModal
                 visible={addModalVisible}
@@ -220,6 +273,8 @@ function Home() {
                 onPickLocation={selectLocation}
                 selectedLocation={pickedLocation}
                 onTagAdded={loadAllTags}
+                currentUserLocation={currentLocation}
+                onSetLocation={setPickedLocation}
             />
             <DetailModal
                 visible={DetailModalVisible}
