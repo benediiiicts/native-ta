@@ -1,11 +1,11 @@
+import WarningModal from "@/components/Modals/WarningModal";
 import styles from "@/styles/AddTagModal.styles";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from "react";
-import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import ConfirmModal from "./ConfirmationModal"; 
-import WarningModal from "@/components/Modals/WarningModal";
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import ConfirmModal from "./ConfirmationModal";
 
 interface AddTagModalProps {
     visible: boolean;
@@ -13,6 +13,8 @@ interface AddTagModalProps {
     onPickLocation: () => void;
     selectedLocation: any;
     onTagAdded?: () => void;
+    currentUserLocation: {latitude: number, longitude: number} | null
+    onSetLocation: (location: any) => void
 }
 
 async function getStorageValue(key: string){
@@ -37,7 +39,7 @@ export const TAG_TYPES = [
     'Penutupan / Proyek Jalan'
 ];
 
-function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded }: AddTagModalProps) {
+function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded, currentUserLocation, onSetLocation }: AddTagModalProps) {
     const tokenKey = 'userToken';
    
     const [description, setDescription] = useState("");
@@ -73,32 +75,138 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
     }
     
     async function pickImage(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if(!permissionResult.granted){
             showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
+        let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: false,
+            allowsMultipleSelection: true,
+            selectionLimit: 3 - tempImages.length,
             quality: 0.8,
-        });
+        })
 
         if (!result.canceled) {
-            const selectedFile = result.assets[0];
-            const mimeType = selectedFile.mimeType || 'image/jpeg';
+            const selectedFiles = result.assets;
+            const validImages = selectedFiles.filter(file => {
+                const mimeType = file.mimeType || 'image/jpeg';
+                return mimeType.startsWith('image/');
+            });
 
+            if (validImages.length !== selectedFiles.length) {
+                showWarning("File Ditolak", "Beberapa file ditolak karena format tidak didukung.");
+            }
+            setTempImages([...tempImages, ...validImages]);
+        }
+    }
+
+    async function takePhoto(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
+        if(!permissionResult.granted){
+            showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
+            return;
+        }
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: false,
+            aspect: [4, 3],
+            quality: 0.8,
+        })
+        if(!result.canceled){
+            const capturedFile = result.assets[0]
+            const mimeType = capturedFile.mimeType || 'image/jpeg';
             if (!mimeType.startsWith('image/')) {
-                showWarning("File Ditolak", "Format file tidak didukung. Mohon hanya unggah file gambar.");
+                showWarning("File Ditolak", "Format file tidak didukung.");
                 return;
             }
 
-            if(tempImages.length >= 3){
-                showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
-                return;
+            setTempImages([...tempImages, capturedFile]);
+        }
+    }
+
+    async function handleUserCurrentLocation(){
+        if(!currentUserLocation){
+            showWarning("Lokasi Belum Tersedia", "Mohon tunggu sebentar hingga GPS menemukan lokasi Anda, atau pastikan GPS menyala.");
+            return;
+        }
+        setIsLoading(true)
+        try{
+            const {latitude, longitude} = currentUserLocation
+            const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
+            const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+
+            let requestHeaders: any = {
+                'Accept': 'application/json'
             }
-            setTempImages([...tempImages, selectedFile]);
+
+            if (Platform.OS !== 'web') {
+                requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`;
+            }
+            const response = await fetch(apiUrl, {
+                headers: requestHeaders
+            })
+            const jsonResponse = await response.json()
+            
+            let roadName = "Jalan Tidak Dikenal"
+            let roadClass = "Unclassified"
+
+            if(jsonResponse && jsonResponse.address){
+                roadName = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || "Jalan Tidak Dikenal";
+            }
+
+            if(onSetLocation){
+                onSetLocation({
+                    latitude: latitude,
+                    longitude: longitude,
+                    name: roadName,
+                    roadClass: roadClass
+                });
+            }
+
+            if(roadName === "Jalan Tidak Dikenal" || !jsonResponse.address?.road){
+                showWarning("Info Lokasi", "Lokasi anda saat ini tidak berada ada jalan utama, titik anda akan ditempatkan ke posisi jalan terdekat")
+            }
+        }
+        catch(error){
+            console.error(`Geocoding error: ${error}`)
+            showWarning("Gagal", "Tidak dapat mengambil nama jalan dari lokasi Anda saat ini.");
+        }
+        finally{
+            setIsLoading(false)
+        }
+    }
+
+    function handleImage(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+        if (Platform.OS === 'web') {
+            //di web hanya berikan pilihan upload, tidak ada buka kamera
+            pickImage();
+        } else {
+            // di mobile, munculkan pilihan upload/kamera
+            Alert.alert(
+                "Tambah Gambar",
+                "Pilih dari mana Anda ingin mengambil gambar",
+                [
+                    { text: "Buka Kamera", onPress: takePhoto },
+                    { text: "Pilih dari Galeri", onPress: pickImage },
+                    { text: "Batal", style: "cancel" }
+                ]
+            );
         }
     }
 
@@ -150,6 +258,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     formData.append("images", {
                         uri: image.uri,
                         type: mimeType,
+                        name: fileName
                     } as any);
                 }
             }
@@ -240,15 +349,19 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                         </View>
                     ))}
                     {tempImages.length < 3 && (
-                        <TouchableOpacity style={[styles.imagePlaceholder, { width: 80, height: 80, marginTop: 0 }]} onPress={pickImage}>
+                        <TouchableOpacity style={[styles.imagePlaceholder, { width: 80, height: 80, marginTop: 0 }]} onPress={handleImage}>
                             <Ionicons name="camera" size={24} color="#888" />
                             <Text style={{ fontSize: 10, color: "#888", marginTop: 4 }}>Add Picture</Text>
                         </TouchableOpacity>
                     )}
                 </ScrollView>
 
-                <View style={styles.labelRow}>
+                <View style={[styles.labelRow, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
                     <Text style={styles.label}>Location</Text>
+                    <TouchableOpacity onPress={handleUserCurrentLocation} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="crosshairs-gps" size={16} color="#3B82F6" />
+                        <Text style={{ fontSize: 12, color: '#3B82F6', marginLeft: 4, fontWeight: 'bold' }}>Gunakan Lokasi Saat Ini</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity 
@@ -256,12 +369,12 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     onPress={onPickLocation}
                     activeOpacity={0.7}
                 >
-                <Text style={[styles.textInput, { color: selectedLocation ? "#000" : "#888", marginTop: 12 }]}>
-                    {locationText}
-                </Text>
-                <View style={styles.iconButton}>
-                    <MaterialCommunityIcons name="map-marker-radius" size={20} color="#333" />
-                </View>
+                    <Text style={[styles.textInput, { color: selectedLocation ? "#000" : "#888", marginTop: 12 }]}>
+                        {locationText}
+                    </Text>
+                    <View style={styles.iconButton}>
+                        <MaterialCommunityIcons name="map-marker-radius" size={20} color="#333" />
+                    </View>
                 </TouchableOpacity>
 
                 <Text style={styles.label}>Select tag type</Text>

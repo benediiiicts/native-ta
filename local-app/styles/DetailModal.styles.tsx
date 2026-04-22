@@ -28,15 +28,36 @@ export const styles = StyleSheet.create({
                   borderTopRightRadius: 20,
               }),
     },
+    flex1: {
+        flex: 1,
+    },
+    loadingText: {
+        padding: 20,
+    },
 
     // --- INNER CONTENT STYLES ---
     imageWrapper: {
         height: 220,
         position: "relative",
     },
-    image: {
-        width: "100%",
-        height: "100%",
+    scrollViewImage: {
+        flex: 1,
+        width: '100%',
+    },
+    scrollViewImageContent: {
+        flexDirection: 'row',
+    },
+    sliderItemContainer: {
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sliderPlaceholderContainer: {
+        height: '100%',
+    },
+    sliderImage: {
+        width: '100%',
+        height: '100%',
         backgroundColor: "#E5E7EB", 
     },
     closeButton: {
@@ -47,6 +68,55 @@ export const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.7)',
         borderRadius: 20,
     },
+    
+    // --- BADGES OVER IMAGE ---
+    badgeContainer: {
+        position: 'absolute',
+        top: 15,
+        left: 15,
+        zIndex: 10,
+    },
+    roadNameBadge: {
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        marginBottom: 8,
+        alignSelf: 'flex-start',
+    },
+    roadNameBadgeText: {
+        fontWeight: 'bold',
+        color: '#1F2937',
+    },
+    statusBadgeRow: {
+        flexDirection: 'row',
+        gap: 6,
+        flexWrap: 'wrap',
+    },
+    versionBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    verifiedBadge: {
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    badgeIcon: {
+        marginRight: 4,
+    },
+    badgeText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+
     streetLabel: {
         position: "absolute",
         bottom: 15,
@@ -63,6 +133,8 @@ export const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#1F2937",
     },
+
+    // --- BODY CONTENT ---
     contentContainer: {
         padding: 20,
         paddingBottom: 40, // Extra padding at the bottom for scrolling
@@ -87,6 +159,9 @@ export const styles = StyleSheet.create({
     actionGroup: {
         flexDirection: "row",
         alignItems: "center",
+    },
+    addVersionButton: {
+        marginRight: 15,
     },
     authorText: {
         fontSize: 15,
@@ -121,6 +196,8 @@ export const styles = StyleSheet.create({
         marginLeft: 10,
         color: "#1F2937",
     },
+
+    // --- BUTTONS ---
     buttonRow: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -141,6 +218,20 @@ export const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#1F2937",
     },
+    buttonDisabled: {
+        opacity: 0.5,
+    },
+    outlineButtonApproveActive: {
+        backgroundColor: '#10B981',
+        borderColor: '#10B981',
+    },
+    outlineButtonRejectActive: {
+        backgroundColor: '#EF4444',
+        borderColor: '#EF4444',
+    },
+    outlineButtonTextActive: {
+        color: 'white',
+    },
     historyButton: {
         flexDirection: "row",
         alignItems: "center",
@@ -156,6 +247,8 @@ export const styles = StyleSheet.create({
         color: "#374151",
         marginLeft: 8,
     },
+
+    // --- PAGINATION & ARROWS ---
     paginationWrapper: {
         position: 'absolute',
         bottom: 20,
@@ -180,6 +273,9 @@ export const styles = StyleSheet.create({
     inactiveDot: {
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
     },
+    paginationDotWrapper: {
+        padding: 5,
+    },
     arrowButton: {
         position: 'absolute',
         top: '50%',
@@ -192,11 +288,19 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
     },
+    arrowButtonLeft: {
+        left: 10,
+    },
+    arrowButtonRight: {
+        right: 10,
+    },
     divider: {
         height: 1,
         backgroundColor: "#9CA3AF",
         marginBottom: 15,
     },
+
+    // --- COMMENTS STYLES ---
     commentsRow: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -213,8 +317,6 @@ export const styles = StyleSheet.create({
         color: "#1F2937",
         marginLeft: 10,
     },
-
-    // --- COMMENTS STYLES ---
     commentHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -224,30 +326,68 @@ export const styles = StyleSheet.create({
         borderBottomColor: "#E5E7EB",
         backgroundColor: "#F9FAFB",
     },
-    commentItem: {
+    commentHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    refreshButton: {
+        marginRight: 15,
+        padding: 5,
+    },
+    commentInputContainer: {
         marginBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F3F4F6",
-        paddingBottom: 15,
-    },
-    commentUser: {
-        fontSize: 15,
-        fontWeight: "bold",
-        color: "#1F2937",
-        marginBottom: 4,
-    },
-    commentText: {
-        fontSize: 14,
-        color: "#4B5563",
-        lineHeight: 20,
-        marginBottom: 10,
-    },
-    commentImage: {
-        width: 120,
-        height: 80,
+        padding: 10,
+        backgroundColor: '#F3F4F6',
         borderRadius: 8,
-        backgroundColor: "#E5E7EB",
-        marginTop: 5,
+    },
+    commentTextInput: {
+        backgroundColor: 'white',
+        padding: 10,
+        borderRadius: 8,
+        minHeight: 60,
+        textAlignVertical: 'top',
+    },
+    commentSubmitRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginTop: 10,
+    },
+    commentSubmitButton: {
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    commentSubmitText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    commentItemWrapper: {
+        marginBottom: 15,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    commentAuthorText: {
+        fontWeight: 'bold',
+        color: '#374151',
+        marginBottom: 5,
+    },
+    commentContentText: {
+        color: '#4B5563',
+        marginBottom: 8,
+    },
+    commentImageStyle: {
+        width: '100%',
+        height: 150,
+        borderRadius: 8,
+    },
+    emptyCommentContainer: {
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    emptyCommentText: {
+        color: '#6B7280',
     },
 
     // --- HISTORY STYLES ---
@@ -295,5 +435,14 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold', 
         fontSize: 16, 
         color: '#1F2937' 
+    },
+    centerMessageText: {
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    emptyHistoryText: {
+        textAlign: 'center',
+        marginTop: 20,
+        color: '#6B7280',
     }
 });

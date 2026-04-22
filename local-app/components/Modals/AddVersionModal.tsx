@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from "react";
-import { Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import WarningModal from "@/components/Modals/WarningModal";
 
 interface AddVersionModalProps {
@@ -61,32 +61,86 @@ function AddVersionModal({ visible, onClose, tagRoadId, onVersionAdded }: AddVer
     }
     
     async function pickImage(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if(!permissionResult.granted){
             showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
+        let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: false,
+            allowsMultipleSelection: true,
+            selectionLimit: 3 - tempImages.length,
             quality: 0.8,
-        });
+        })
 
         if (!result.canceled) {
-            const selectedFile = result.assets[0];
-            const mimeType = selectedFile.mimeType || 'image/jpeg';
+            const selectedFiles = result.assets;
+            const validImages = selectedFiles.filter(file => {
+                const mimeType = file.mimeType || 'image/jpeg';
+                return mimeType.startsWith('image/');
+            });
 
+            if (validImages.length !== selectedFiles.length) {
+                showWarning("File Ditolak", "Beberapa file ditolak karena format tidak didukung.");
+            }
+            setTempImages([...tempImages, ...validImages]);
+        }
+    }
+
+    async function takePhoto(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
+        if(!permissionResult.granted){
+            showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
+            return;
+        }
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: false,
+            aspect: [4, 3],
+            quality: 0.8,
+        })
+        if(!result.canceled){
+            const capturedFile = result.assets[0]
+            const mimeType = capturedFile.mimeType || 'image/jpeg';
             if (!mimeType.startsWith('image/')) {
-                showWarning("File Ditolak", "Format file tidak didukung. Mohon hanya unggah file gambar.");
+                showWarning("File Ditolak", "Format file tidak didukung.");
                 return;
             }
 
-            if(tempImages.length >= 3){
-                showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
-                return;
-            }
-            setTempImages([...tempImages, selectedFile]);
+            setTempImages([...tempImages, capturedFile]);
+        }
+    }
+
+    function handleImage(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+        if (Platform.OS === 'web') {
+            //di web hanya berikan pilihan upload, tidak ada buka kamera
+            pickImage();
+        } else {
+            // di mobile, munculkan pilihan upload/kamera
+            Alert.alert(
+                "Tambah Gambar",
+                "Pilih dari mana Anda ingin mengambil gambar",
+                [
+                    { text: "Buka Kamera", onPress: takePhoto },
+                    { text: "Pilih dari Galeri", onPress: pickImage },
+                    { text: "Batal", style: "cancel" }
+                ]
+            );
         }
     }
 
@@ -217,7 +271,7 @@ function AddVersionModal({ visible, onClose, tagRoadId, onVersionAdded }: AddVer
                         </View>
                     ))}
                     {tempImages.length < 3 && (
-                        <TouchableOpacity style={[styles.imagePlaceholder, { width: 80, height: 80, marginTop: 0 }]} onPress={pickImage}>
+                        <TouchableOpacity style={[styles.imagePlaceholder, { width: 80, height: 80, marginTop: 0 }]} onPress={handleImage}>
                             <Ionicons name="camera" size={24} color="#888" />
                             <Text style={{ fontSize: 10, color: "#888", marginTop: 4 }}>Add Picture</Text>
                         </TouchableOpacity>
