@@ -61,32 +61,36 @@ function AddVersionModal({ visible, onClose, tagRoadId, onVersionAdded }: AddVer
     }
     
     async function pickImage(){
+        if (tempImages.length >= 3) {
+            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+            return;
+        }
+
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if(!permissionResult.granted){
             showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
+        let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: false,
+            allowsMultipleSelection: true,
+            selectionLimit: 3 - tempImages.length,
             quality: 0.8,
-        });
+        })
 
         if (!result.canceled) {
-            const selectedFile = result.assets[0];
-            const mimeType = selectedFile.mimeType || 'image/jpeg';
+            const selectedFiles = result.assets;
+            const validImages = selectedFiles.filter(file => {
+                const mimeType = file.mimeType || 'image/jpeg';
+                return mimeType.startsWith('image/');
+            });
 
-            if (!mimeType.startsWith('image/')) {
-                showWarning("File Ditolak", "Format file tidak didukung. Mohon hanya unggah file gambar.");
-                return;
+            if (validImages.length !== selectedFiles.length) {
+                showWarning("File Ditolak", "Beberapa file ditolak karena format tidak didukung.");
             }
-
-            if(tempImages.length >= 3){
-                showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
-                return;
-            }
-            setTempImages([...tempImages, selectedFile]);
+            setTempImages([...tempImages, ...validImages]);
         }
     }
 
