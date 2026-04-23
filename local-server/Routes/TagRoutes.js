@@ -5,7 +5,8 @@ import {
     fetchAllTags, 
     fetchTagDetails, 
     handleVote,
-    fetchVersionHistory} from '../Controllers/TagController.js';
+    fetchVersionHistory,
+    checkUpdates} from '../Controllers/TagController.js';
 import {handleComment, handleLoadComment} from '../Controllers/CommentController.js';
 import { authenticateToken, optionalAuth } from '../Middleware/AuthMiddleware.js';
 import upload from '../Middleware/UploadMiddleware.js';
@@ -22,5 +23,6 @@ router.get('/tag-version/:id/comment', handleLoadComment)
 router.get('/tag-roads/:id/versions', fetchVersionHistory);
 
 router.get('/fetch-all', fetchAllTags)
+router.get('/check-updates', fetchUpdatesStatus);
 
 export default router
