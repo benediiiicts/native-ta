@@ -10,9 +10,10 @@ interface NavbarProps {
     onSearchResults: (data: any[]) => void;
     onPickLocationMode: boolean;
     currentUserLocation?: {latitude: number, longitude: number} | null;
+    onProfilePress: () => void
 }
 
-function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation }: NavbarProps) {
+function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation, onProfilePress }: NavbarProps) {
     let router = useRouter();
 
     const [searchLocation, setSearchLocation] = useState('');
@@ -157,7 +158,7 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                                 <>
                                     <TouchableOpacity style={styles.menuItem} onPress={() => {
                                         setIsMenuVisible(false);
-                                        Alert.alert("Info", "Fitur profil akan segera hadir!");
+                                        onProfilePress()
                                     }}>
                                         <Ionicons name="person-circle-outline" size={20} color="#4B5563" />
                                         <Text style={styles.menuText}>Profil Saya</Text>
