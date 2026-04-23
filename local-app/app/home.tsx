@@ -45,6 +45,7 @@ function Home() {
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
+    const [showHiddenTags, setShowHiddenTags] = useState(false);
 
     //fetch time untuk notifikasi
     const [lastFetchTime, setLastFetchTime] = useState<string>(() => new Date().toISOString());
@@ -110,6 +111,10 @@ function Home() {
     useEffect(() => {
         getUserLocation();
     }, [])
+
+    useEffect(()=>{
+        loadAllTags()
+    }, [showHiddenTags])
 
     useEffect(() => {
         if(!currentLocation || isSelectingLocation) return
@@ -204,8 +209,13 @@ function Home() {
 
     async function loadAllTags(){
         try{
-            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/fetch-all`
-            const response = await fetch(apiUrl)
+            const token = await getStorageValue(tokenKey)
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/fetch-all?includeHidden=${showHiddenTags}`;
+            const response = await fetch(apiUrl,{
+                headers:{
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const jsonResponse = await response.json()
             if(jsonResponse.status == 200){
                 setAllTags(jsonResponse.data)
@@ -420,6 +430,23 @@ function Home() {
                 )}
                 
             </View>
+
+            {/* Jika admin, tunjukkan tombol show hidden tags */}
+            {myRole === 'admin' && !isSelectingLocation && (
+                <TouchableOpacity 
+                    onPress={() => setShowHiddenTags(!showHiddenTags)}
+                    style={{
+                        position: 'absolute', bottom: 100, right: 20, 
+                        backgroundColor: showHiddenTags ? '#EF4444' : '#4B5563',
+                        padding: 10, borderRadius: 30, elevation: 5, flexDirection: 'row', alignItems: 'center'
+                    }}
+                >
+                    <Ionicons name={showHiddenTags ? "eye" : "eye-off"} size={20} color="white" />
+                    <Text style={{ color: 'white', marginLeft: 8, fontWeight: 'bold', fontSize: 12 }}>
+                        {showHiddenTags ? "Mode Admin: Tampil Semua" : "Mode Admin: Sembunyikan Hidden"}
+                    </Text>
+                </TouchableOpacity>
+            )}
             <AddTagModal
                 visible={addModalVisible}
                 onClose={() => {

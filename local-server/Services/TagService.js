@@ -215,10 +215,28 @@ async function getTagDetail(_tagId, _userId=null, _versionId=null){
     }
 }
 
-async function getAllTags(){
+async function getAllTags(_userId=null, _includeHidden="false"){
     try{
+        if(_includeHidden !== "false"){
+            if(!_userId){
+                return{
+                    status: 401,
+                    message: "User not authorized"
+                }
+            }
+            const checkUser = await user.findByPk(_userId,{
+                attributes: ['role']
+            })
+            if(checkUser.role !== 'admin'){
+                return{
+                    status: 401,
+                    message: "User not authorized"
+                }
+            }
+        }
+        const condition = _includeHidden == 'false'? false : true
         const fetchTags = await tagRoads.findAll({
-            where: {isHidden: false}
+            where: {isHidden: condition}
         })
         return {
             data: fetchTags,
