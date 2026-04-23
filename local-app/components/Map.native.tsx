@@ -147,6 +147,17 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                         />
                     );
                 })}
+                {targetLocation && targetLocation.latitude && targetLocation.longitude && (
+                    <Marker
+                        coordinate={{
+                            latitude: parseFloat(targetLocation.latitude),
+                            longitude: parseFloat(targetLocation.longitude),
+                        }}
+                        pinColor="blue"
+                        title="Titik Pilihan"
+                        description={targetLocation.name || "Titik yang akan dilaporkan"}
+                    />
+                )}
                 {tags.map((tag) => {
                     return (
                         <Marker
