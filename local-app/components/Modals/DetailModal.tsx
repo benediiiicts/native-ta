@@ -14,6 +14,7 @@ interface DetailModalProps {
     onClose: () => void;
     tagId: number | null;
     currentUserId?: number | null;
+    userRole?: string;
 }
 
 async function getStorageValue(key: string){
@@ -29,7 +30,7 @@ async function getStorageValue(key: string){
     }
 }
 
-function DetailModal({ visible, onClose, tagId, currentUserId }: DetailModalProps) {
+function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: DetailModalProps) {
     const tokenKey = 'userToken';
 
     //untuk data detail tag
@@ -320,6 +321,10 @@ function DetailModal({ visible, onClose, tagId, currentUserId }: DetailModalProp
         }
     }
 
+    function handleAdminTagActions(){
+        
+    }
+
     function handleScroll(event: any) {
         const scrollPosition = event.nativeEvent.contentOffset.x;
         const index = Math.round(scrollPosition / currentWidth);
@@ -494,7 +499,11 @@ function DetailModal({ visible, onClose, tagId, currentUserId }: DetailModalProp
                         >
                             <FontAwesome5 name="pen" size={20} color="#374151" />
                         </TouchableOpacity>
-                        
+                        {userRole == 'admin' ? (
+                            <TouchableOpacity onPress={handleAdminTagActions}>
+                                <MaterialCommunityIcons name="wrench" size={28} color="#8B5CF6" />
+                            </TouchableOpacity>
+                        ):(
                         <TouchableOpacity 
                             onPress={() => {
                                 setReportTargetType('TagVersion');
@@ -504,6 +513,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId }: DetailModalProp
                         >
                             <MaterialIcons name="report" size={28} color="#374151" />
                         </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -814,6 +824,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId }: DetailModalProp
                     setReportTargetId(id);
                     setReportTargetName(name);
                     setReportVisible(true);
+                    setProfileModalVisible(false)
                 }}
             />
         </Modal>

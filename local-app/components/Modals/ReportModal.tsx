@@ -54,7 +54,10 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
         setWarningMessage(message);
 
         if (onConfirmAction) {
-            setWarningOnConfirm(() => onConfirmAction);
+            setWarningOnConfirm(() => () => {
+                setWarningVisible(false)
+                onConfirmAction()
+            });
         } else {
             setWarningOnConfirm(() => () => setWarningVisible(false));
         }

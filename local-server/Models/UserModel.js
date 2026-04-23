@@ -39,6 +39,14 @@ const user = sequelize.define('User',
         isActive:{
             type: DataTypes.BOOLEAN,
             defaultValue: true
+        },
+        banType: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        bannedUntil: {
+            type: DataTypes.DATE,
+            allowNull: true
         }
     }, {
         tableName: 'users',

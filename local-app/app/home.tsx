@@ -41,12 +41,13 @@ function Home() {
 
     const [isLogedIn, setisLogedIn] = useState(false)
     const [myId, setMyId] = useState<number | null>(null);
+    const [myRole, setMyRole] = useState('user')
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
 
     //fetch time untuk notifikasi
-    const [lastFetchTime, setLastFetchTime] = useState<string>(new Date().toISOString());
+    const [lastFetchTime, setLastFetchTime] = useState<string>(() => new Date().toISOString());
     const [hasNewUpdates, setHasNewUpdates] = useState(false);
 
     //state untuk modal konfirmasi
@@ -92,12 +93,13 @@ function Home() {
         async function checkLogin() {
             const token = await getStorageValue(tokenKey)
             const storedId = await getStorageValue('myUserId');
+            const storedRole = await getStorageValue('myUserRole')
             if(token) {
                 setisLogedIn(true)
                 if(storedId) setMyId(parseInt(storedId))
+                if(storedRole) setMyRole(storedRole)
             }
         }
-
         checkLogin()
     }, [])
 
@@ -207,7 +209,7 @@ function Home() {
             const jsonResponse = await response.json()
             if(jsonResponse.status == 200){
                 setAllTags(jsonResponse.data)
-                setLastFetchTime(new Date().toISOString)
+                setLastFetchTime(new Date().toISOString())
                 setHasNewUpdates(false)
             }
         }
@@ -303,6 +305,7 @@ function Home() {
                     onPickLocationMode={true}
                     currentUserLocation={currentLocation}
                     onProfilePress={handleOpenMyProfile}
+                    userRole={myRole}
                 />
             ):(
                 <Navbar 
@@ -312,6 +315,7 @@ function Home() {
                     onPickLocationMode={false}
                     currentUserLocation={currentLocation}
                     onProfilePress={handleOpenMyProfile}
+                    userRole={myRole}
                 />
             )}
             {!isSelectingLocation && (

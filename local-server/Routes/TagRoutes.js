@@ -23,6 +23,6 @@ router.get('/tag-version/:id/comment', handleLoadComment)
 router.get('/tag-roads/:id/versions', fetchVersionHistory);
 
 router.get('/fetch-all', fetchAllTags)
-router.get('/check-updates', fetchUpdatesStatus);
+router.get('/check-updates', checkUpdates);
 
 export default router

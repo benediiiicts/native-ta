@@ -11,9 +11,10 @@ interface NavbarProps {
     onPickLocationMode: boolean;
     currentUserLocation?: {latitude: number, longitude: number} | null;
     onProfilePress: () => void
+    userRole: string
 }
 
-function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation, onProfilePress }: NavbarProps) {
+function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation, onProfilePress, userRole }: NavbarProps) {
     let router = useRouter();
 
     const [searchLocation, setSearchLocation] = useState('');
@@ -156,6 +157,16 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                         <View style={styles.menuDropdown}>
                             {login ? (
                                 <>
+                                {userRole == 'admin' && (
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                        setIsMenuVisible(false);
+                                        router.push('/admin/dashboard')
+                                    }}>
+                                        <Ionicons name="construct" size={20} color="#4B5563" />
+                                        <Text style={styles.menuText}>Administrator</Text>
+                                    </TouchableOpacity>
+                                )}
+
                                     <TouchableOpacity style={styles.menuItem} onPress={() => {
                                         setIsMenuVisible(false);
                                         onProfilePress()

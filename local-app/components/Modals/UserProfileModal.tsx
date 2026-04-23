@@ -146,8 +146,8 @@ function UserProfileModal({ visible, onClose, userId, isOwnProfile, onReportPres
                             </View>
 
                             <View style={styles.statsContainer}>
-                                <View style={styles.statBox}><Text style={styles.statNumber}>{profileData.stats.totalLaporan}</Text><Text style={styles.statLabel}>Laporan</Text></View>
-                                <View style={styles.statBox}><Text style={styles.statNumber}>{profileData.stats.totalKomentar}</Text><Text style={styles.statLabel}>Komentar</Text></View>
+                                <View style={styles.statBox}><Text style={styles.statNumber}>{profileData.stats.tagCount}</Text><Text style={styles.statLabel}>Laporan</Text></View>
+                                <View style={styles.statBox}><Text style={styles.statNumber}>{profileData.stats.commentCount}</Text><Text style={styles.statLabel}>Komentar</Text></View>
                             </View>
 
                             {isOwnProfile ? (

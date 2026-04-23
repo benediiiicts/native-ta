@@ -84,6 +84,10 @@ function Login() {
                     if (userId) {
                         await saveStorage('myUserId', String(userId));
                     }
+                    const userRole = jsonResponse.data.user?.role || jsonResponse.data.role
+                    if (userRole){
+                        await saveStorage('myUserRole', String(userRole))
+                    }
                 }
                 setSuccessMessage("Login berhasil! Mengalihkan...");
 
