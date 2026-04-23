@@ -203,8 +203,8 @@ function RegionTrack({ onRegionChange, active, onZoomChange }: { onRegionChange:
                         east: bound.getEast(),
                     }
 
-                    let roadsData = await fetchOverpass(regionBound.south, regionBound.west, regionBound.north, regionBound.east)
-                    onRegionChange(roadsData)
+                    let roadData = await fetchOverpass(regionBound.south, regionBound.west, regionBound.north, regionBound.east)
+                    onRegionChange(roadData)
                 }, 1000)
             }
             else{
