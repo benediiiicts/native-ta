@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View, Button, Platform, Alert} from "react-native";
+import { TouchableOpacity, ScrollView, ActivityIndicator, Text, View, Button, Platform, Alert} from "react-native";
 import Map from '../components/Map';
 import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
@@ -6,9 +6,10 @@ import Navbar from '../components/Navbar';
 import DetailModal from "../components/Modals/DetailModal";
 import AddTagModal from "@/components/Modals/AddTagModal";
 import ConfirmModal from "@/components/Modals/ConfirmationModal";
+import UserProfileModal from "@/components/Modals/UserProfileModal";
+import WarningModal from "@/components/Modals/WarningModal";
 import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
-import WarningModal from "@/components/Modals/WarningModal";
 
 async function getStorageValue(key: string){
     if (Platform.OS === 'web') {
@@ -22,6 +23,16 @@ async function getStorageValue(key: string){
         return await SecureStore.getItemAsync(key);
     }
 }
+
+const TAG_CATEGORIES = [
+        'Semua', 
+        'Jalan Rusak', 
+        'Fasilitas Jalan Rusak', 
+        'Genangan Air / Banjir', 
+        'Hambatan Jalan', 
+        'Kecelakaan Lalu Lintas',
+        'Penutupan / Proyek Jalan'
+    ];
 
 function Home() {
     const router = useRouter()
@@ -51,6 +62,9 @@ function Home() {
 
     const [pickedLocation, setPickedLocation] = useState<any>(null)
     const [tempLocation, setTempLocation] = useState<any>(null)
+
+    //state untuk filter tag
+    const [activeFilter, setActiveFilter] = useState<string>('Semua')
 
     //untuk tracking lokasi saat ini
     const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
@@ -209,6 +223,11 @@ function Home() {
         )
     }
 
+    const displayedTags = allTags.filter((tag)=>{
+        if(activeFilter == 'Semua') return true
+        return tag.issueType === activeFilter || tag.issue_type === activeFilter;
+    })
+
     return (
         <View style={{ flex: 1 }}>
             {currentLocation ? (
@@ -216,7 +235,7 @@ function Home() {
                     active={isSelectingLocation} 
                     targetLocation={searchLocation} 
                     onRoadSelect={handlePickLocation}
-                    tags={allTags}
+                    tags={displayedTags}
                     onTagSelect={handleSelectTag}
                     currentUserLocation={currentLocation} 
                 />
@@ -234,6 +253,7 @@ function Home() {
                     onLogout={() => setConfirmLogoutVisible(true)} 
                     onSearchResults={handleLocationSearch}
                     onPickLocationMode={true}
+                    currentUserLocation={currentLocation}
                 />
             ):(
                 <Navbar 
@@ -241,7 +261,49 @@ function Home() {
                     onLogout={() => setConfirmLogoutVisible(true)} 
                     onSearchResults={handleLocationSearch}
                     onPickLocationMode={false}
+                    currentUserLocation={currentLocation}
                 />
+            )}
+            {!isSelectingLocation && (
+                <View style={{ position: 'absolute', top: 70, left: 0, right: 0, zIndex: 10 }}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10 }}
+                    >
+                        {TAG_CATEGORIES.map((category, index)=>{
+                            const isActive = activeFilter === category
+                            return(
+                                <TouchableOpacity
+                                    key={index}
+                                    style={{
+                                        backgroundColor: isActive ? '#3B82F6' : '#FFFFFF',
+                                        paddingHorizontal: 16,
+                                        paddingVertical: 8,
+                                        borderRadius: 20,
+                                        marginRight: 10,
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.15,
+                                        shadowRadius: 3.84,
+                                        elevation: 5, 
+                                        borderWidth: isActive ? 0 : 1,
+                                        borderColor: '#E5E7EB'
+                                    }}
+                                    onPress={() => setActiveFilter(category)}
+                                >
+                                    <Text style={{ 
+                                        color: isActive ? '#FFFFFF' : '#4B5563', 
+                                        fontWeight: '600', 
+                                        fontSize: 13 
+                                    }}>
+                                        {category}
+                                    </Text>
+                                </TouchableOpacity>
+                            )
+                        })}
+                    </ScrollView>
+                </View>
             )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
                 {isSelectingLocation ? (

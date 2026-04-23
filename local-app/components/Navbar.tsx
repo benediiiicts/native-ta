@@ -1,16 +1,24 @@
-// components/Navbar.tsx
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, Alert, Keyboard, FlatList, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; 
-import { styles } from '../styles/Navbar.styles';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, FlatList, Keyboard, Platform, Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { styles } from '../styles/Navbar.styles'; 
 
-function Navbar({ login, onLogout, onSearchResults, onPickLocationMode }: { login: boolean; onLogout: () => void; onSearchResults: (data: any[]) => void; onPickLocationMode: boolean}) {
+interface NavbarProps {
+    login: boolean;
+    onLogout: () => void;
+    onSearchResults: (data: any[]) => void;
+    onPickLocationMode: boolean;
+    currentUserLocation?: {latitude: number, longitude: number} | null;
+}
+
+function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation }: NavbarProps) {
     let router = useRouter();
-    let [searchLocation, setSearchLocation] = useState('');
-    let [errorMessage, setErrorMessage] = useState('');
-    let [searchResults, setSearchResults] = useState<any[]>([])
-    let [isDropdownVisible, setIsDropdownVisible] = useState(false)
+
+    const [searchLocation, setSearchLocation] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [isMenuVisible, setIsMenuVisible] = useState(false);
 
     async function handleSearch () {
         if (!searchLocation.trim()) return; 
@@ -26,10 +34,24 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode }: { logi
             requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`;
         }
 
+        if(currentUserLocation){
+            const offset = 0.2;
+            const left = currentUserLocation.longitude - offset;
+            const top = currentUserLocation.latitude + offset;
+            const right = currentUserLocation.longitude + offset;
+            const bottom = currentUserLocation.latitude - offset;
+
+            api_url += `&viewbox=${left},${top},${right},${bottom}`;
+            api_url += `&bounded=1`;
+        }
+
         try {
             console.log(`Mencari lokasi: ${searchLocation}...`);
             const response = await fetch(api_url, {
-                headers: requestHeaders
+                headers: {
+                    ...requestHeaders,
+                    'Accept-Language': 'id'
+                }
             });
 
             if (!response.ok) {
@@ -37,30 +59,38 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode }: { logi
             }
             const data = await response.json();
             if(data.length > 0){
-                setSearchResults(data)
-                setIsDropdownVisible(true)
-                Keyboard.dismiss()
+                setSearchResults(data);
+                setIsDropdownVisible(true);
+                setIsMenuVisible(false);
+                Keyboard.dismiss();
+                if (onSearchResults) {
+                    onSearchResults(data);
+                }
+            } else {
+                setIsDropdownVisible(false);
+                console.log("Lokasi tidak ditemukan");
             }
-            else{
-                setIsDropdownVisible(false)
-                console.log("Lokasi tidak ditemukan")
-            }
-        }
-        catch(error) {
+        } catch(error) {
             console.log("Gagal melakukan fetch:", error);
             Alert.alert("Error", "Gagal mengambil data dari server pencarian.");
         }
     }
 
     function handleLocationSelect(item: any){
-        setIsDropdownVisible(false)
-        setSearchLocation(item.name || item.display_name.split(',')[0])
-        onSearchResults([item])
+        setIsDropdownVisible(false);
+        setSearchLocation(item.name || item.display_name.split(',')[0]);
+        onSearchResults([item]);
+    }
+
+    function toggleMenu() {
+        setIsMenuVisible(!isMenuVisible);
+        if (isDropdownVisible) setIsDropdownVisible(false); 
+        Keyboard.dismiss();
     }
 
     return (
         <View style={styles.container}>
-            <View style={{ flex: 1, zIndex: 1000, elevation: 1000 }}>
+            <View style={{ flex: 1, zIndex: 1000, elevation: 1000, marginRight: onPickLocationMode ? 0 : 10 }}>
                 <View style={styles.searchBox}>
                     <TouchableOpacity onPress={handleSearch} style={{ padding: 5 }}>
                         <Ionicons name="search" size={20} color="#888" style={styles.icon} />
@@ -74,6 +104,7 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode }: { logi
                         onChangeText={(text) => {
                             setSearchLocation(text);
                             if (isDropdownVisible) setIsDropdownVisible(false); 
+                            if (isMenuVisible) setIsMenuVisible(false);
                         }}
                         onSubmitEditing={handleSearch}
                         returnKeyType="search"
@@ -102,21 +133,70 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode }: { logi
                 )}
             </View>
             
-            {!onPickLocationMode && !isDropdownVisible && (
-                login ? (
-                    <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-                        <Text style={styles.loginText}>Logout</Text>
+            {!onPickLocationMode && (
+                <View style={{ zIndex: 1001, elevation: 1001, position: 'relative' }}>
+                    <TouchableOpacity 
+                        onPress={toggleMenu}
+                        style={{
+                            backgroundColor: 'white',
+                            padding: 8,
+                            borderRadius: 8,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 3,
+                        }}
+                    >
+                        <Ionicons name={isMenuVisible ? "close" : "menu"} size={28} color="#333" />
                     </TouchableOpacity>
-                ) : (
-                    <>
-                        <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
-                            <Text style={styles.loginText}>Login</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/register')}>
-                            <Text style={styles.loginText}>Register</Text>
-                        </TouchableOpacity>
-                    </>
-                )
+
+                    {isMenuVisible && (
+                        <View style={styles.menuDropdown}>
+                            {login ? (
+                                <>
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                        setIsMenuVisible(false);
+                                        Alert.alert("Info", "Fitur profil akan segera hadir!");
+                                    }}>
+                                        <Ionicons name="person-circle-outline" size={20} color="#4B5563" />
+                                        <Text style={styles.menuText}>Profil Saya</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <View style={styles.menuDivider} />
+
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                        setIsMenuVisible(false);
+                                        onLogout();
+                                    }}>
+                                        <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                                        <Text style={[styles.menuText, { color: '#EF4444' }]}>Logout</Text>
+                                    </TouchableOpacity>
+                                </>
+                            ) : (
+                                <>
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                        setIsMenuVisible(false);
+                                        router.push('/login');
+                                    }}>
+                                        <Ionicons name="log-in-outline" size={20} color="#4B5563" />
+                                        <Text style={styles.menuText}>Login</Text>
+                                    </TouchableOpacity>
+                                    
+                                    <View style={styles.menuDivider} />
+
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                        setIsMenuVisible(false);
+                                        router.push('/register');
+                                    }}>
+                                        <Ionicons name="person-add-outline" size={20} color="#4B5563" />
+                                        <Text style={styles.menuText}>Register</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
+                    )}
+                </View>
             )}
         </View>
     )
