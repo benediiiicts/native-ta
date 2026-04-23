@@ -80,6 +80,10 @@ function Login() {
             if (response.status === 200) {
                 if (jsonResponse.data && jsonResponse.data.token) {
                     await saveStorage('userToken', jsonResponse.data.token);
+                    const userId = jsonResponse.data.user?.id || jsonResponse.data.id;
+                    if (userId) {
+                        await saveStorage('myUserId', String(userId));
+                    }
                 }
                 setSuccessMessage("Login berhasil! Mengalihkan...");
 

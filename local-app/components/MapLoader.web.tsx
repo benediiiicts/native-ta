@@ -14,17 +14,38 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+const redIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
 
 function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagSelect, currentUserLocation}: { active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any; currentUserLocation: {latitude: number, longitude: number}}){
     let [road, setRoad] = useState<any[]>([])
+    let [currentZoom, setCurrentZoom] = useState<number>(14);
 
     useEffect(()=>{
         if(!active){
             setRoad([])
         }
     }, [active])
+
+    const visibleTags = tags.filter((tag)=>{
+        const rc = tag.roadClass?.toLowerCase() || 'unclassified';
+        
+        if (currentZoom < 14) {
+            return ['motorway', 'trunk', 'primary'].includes(rc);
+        } else if (currentZoom < 16) {
+            return ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'].includes(rc);
+        }
+        return true;
+    })
 
     return (
         <MapContainer
@@ -38,7 +59,7 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                 maxZoom={19}
             />
             <SearchRegionTrack targetLocation={targetLocation}/>
-            <RegionTrack active={active} onRegionChange={setRoad}/>
+            <RegionTrack active={active} onRegionChange={setRoad} onZoomChange={setCurrentZoom}/>
             {road.map((way)=>{
 
                 if(!way.geometry) return null
@@ -83,11 +104,22 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                     />
                 )
             })}
-            {tags.map((tag)=>{
+            {targetLocation && targetLocation.latitude && targetLocation.longitude && (
+                <Marker
+                    position={[parseFloat(targetLocation.latitude), parseFloat(targetLocation.longitude)]}
+                >
+                    <Popup>
+                        <b>Titik Pilihan</b> <br />
+                        {targetLocation.name || "Titik yang akan dilaporkan"}
+                    </Popup>
+                </Marker>
+            )}
+            {visibleTags.map((tag)=>{
                 return(
                     <Marker
                         key={tag.id}
                         position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
+                        icon={redIcon}
                     >
                         <Popup>
                             <div 
@@ -137,7 +169,7 @@ function SearchRegionTrack({targetLocation}: {targetLocation: any}){
 }
 
 //track region saat ini
-function RegionTrack({ onRegionChange, active }: { onRegionChange: any; active: boolean }){
+function RegionTrack({ onRegionChange, active, onZoomChange }: { onRegionChange: any; active: boolean; onZoomChange: (z: number) => void }){
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let map = useMap()
 
@@ -149,6 +181,7 @@ function RegionTrack({ onRegionChange, active }: { onRegionChange: any; active: 
 
     useMapEvents({
         moveend: (event) => {
+            onZoomChange(map.getZoom());
             if(active){
                 let map = event.target;
                 if (timeoutRef.current) {

@@ -1,4 +1,4 @@
-import {getUser, createUser, checkCredentials, getUserProfile} from "../Services/UserService.js"
+import {getUser, createUser, checkCredentials, getUserProfile, updateUsername} from "../Services/UserService.js"
 
 async function userLogin(req, res){
     try{
@@ -60,9 +60,24 @@ async function fetchUserProfile(req, res){
     }
 }
 
+async function changeUsername(req, res){
+    try{
+        const userId = req.user.id
+        const newusername = req.body.username
+        const result = await updateUsername(userId, newusername)
+        
+        return res.status(result.status).json(result)
+    }
+    catch(error){
+        console.error(`Cannot change username: ${error}`)
+        return res.status(500).json({message: "Error while updating username"})
+    }
+}
+
 export {
     userLogin,
     userRegister,
     getUserByEmail,
-    fetchUserProfile
+    fetchUserProfile,
+    changeUsername
 }

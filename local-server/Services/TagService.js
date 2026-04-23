@@ -472,6 +472,43 @@ async function countRelevanceScore(){
     }
 }
 
+async function checkRecentUpdate(lat, lon, lastFetchTime){
+    try{
+        const fetchDate = new Date(lastFetchTime)
+
+        const offset = 0.45
+        const minLat = parseFloat(lat) - offset;
+        const maxLat = parseFloat(lat) + offset;
+        const minLon = parseFloat(lon) - offset;
+        const maxLon = parseFloat(lon) + offset;
+        
+        const updatesCount = await tagRoads.count({
+            //hitung semua tag baru di radius
+            where:{
+                updateAt: {[Op.gt]: fetchDate},
+                latitude: {[Op.between]: [minLat, maxLat]},
+                longitude: { [Op.between]: [minLon, maxLon] }
+            }
+        })
+
+        return{
+            status: 200,
+            data: {
+                hasUpdates: updatesCount > 0, 
+                count: updatesCount
+            },
+            message: "Update check successfull"
+        }
+    }
+    catch(error){
+        console.error(`Error while checking recent updates: ${error}`)
+        return{
+            status: 500,
+            message: "Internal server error while checking updates"
+        }
+    }
+}
+
 export {
     createTagRoad, 
     getTagRoad,
@@ -480,5 +517,6 @@ export {
     createTagVersion,
     getVersionHistory,
     voteTagVersion,
-    countRelevanceScore
+    countRelevanceScore,
+    checkRecentUpdate
 }
