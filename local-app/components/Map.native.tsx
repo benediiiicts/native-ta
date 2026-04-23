@@ -27,6 +27,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
 
 function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelect, currentUserLocation }: {active: boolean; targetLocation?: any; onRoadSelect: any; tags?: any[]; onTagSelect: any; currentUserLocation: {latitude: number, longitude: number}}) {
     let [road, setRoad] = useState<any[]>([]);
+    let [currentZoom, setCurrentZoom] = useState<number>(14);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     let mapRef = useRef<MapView>(null)
 
@@ -40,6 +41,8 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
     }, [active])
 
     function handleRegionChange(region: Region) {
+        const zoom = Math.round(Math.log(360 / region.longitudeDelta) / Math.LN2);
+        setCurrentZoom(zoom);
         if(active){
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
@@ -87,6 +90,17 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
             })
         }
     }, [targetLocation, mapRef])
+
+    const visibleTags = tags.filter((tag)=>{
+        const rc = tag.roadClass?.toLowerCase() || 'unclassified';
+        if(currentZoom < 14){
+            return ['motorway', 'trunk', 'primary'].includes(rc)
+        }
+        else if(currentZoom < 16){
+            return ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'].includes(rc);
+        }
+        return true
+    })
 
     return (
         <View style={styles.wrapper}>
@@ -147,7 +161,33 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                         />
                     );
                 })}
-                {tags.map((tag) => {
+                {targetLocation && targetLocation.latitude && targetLocation.longitude && (
+                    <Marker
+                        coordinate={{
+                            latitude: parseFloat(targetLocation.latitude),
+                            longitude: parseFloat(targetLocation.longitude),
+                        }}
+                        pinColor="blue"
+                        title="Titik Pilihan"
+                        description={targetLocation.name || "Titik yang akan dilaporkan"}
+                    />
+                )}
+                {/* {tags.map((tag) => {
+                    return (
+                        <Marker
+                            key={tag.id}
+                            coordinate={{
+                                latitude: parseFloat(tag.latitude),
+                                longitude: parseFloat(tag.longitude),
+                            }}
+                            title={tag.issueType || tag.issue_type}
+                            description="Klik untuk melihat detail"
+                            onPress={() => onTagSelect(tag)}
+                        />
+                    );
+                })} */}
+
+                {visibleTags.map((tag)=>{
                     return (
                         <Marker
                             key={tag.id}

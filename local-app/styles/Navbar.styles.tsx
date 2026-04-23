@@ -93,5 +93,36 @@ export const styles = StyleSheet.create({
         fontSize: 13,
         color: '#1F2937',
         lineHeight: 18,
+    },
+     menuDropdown: {
+        position: 'absolute',
+        top: 50,
+        right: 0,
+        backgroundColor: 'white',
+        borderRadius: 8,
+        width: 160,
+        paddingVertical: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+    },
+    menuText: {
+        fontSize: 15,
+        color: '#4B5563',
+        marginLeft: 10,
+        fontWeight: '500',
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+        marginHorizontal: 10,
     }
 });
