@@ -41,6 +41,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
     }, [active])
 
     function handleRegionChange(region: Region) {
+        //untuk track zoom saat ini
         const zoom = Math.round(Math.log(360 / region.longitudeDelta) / Math.LN2);
         setCurrentZoom(zoom);
         if(active){

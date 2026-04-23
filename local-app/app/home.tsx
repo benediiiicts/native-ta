@@ -375,7 +375,7 @@ function Home() {
                     >
                         <Ionicons name="refresh-circle" size={24} color="white" style={{ marginRight: 6 }} />
                         <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>
-                            Pembaruan Baru Tersedia
+                            Terdapat pembaruan laporan di sekitar anda. Refresh untuk melihat informasi terkini.
                         </Text>
                     </TouchableOpacity>
                 </View>
