@@ -34,7 +34,7 @@ async function checkCredentials(_email, _password){
     if(tempUser.status !== 200){
         return{
             status: 401,
-            message: "Invalid email or password"
+            message: "Invalid email or password" 
         }
     }
     const hash = tempUser.data.password
@@ -149,7 +149,7 @@ async function getUserProfile(targetUserId){
         if(!targetUser){
             return{
                 status: 404,
-                message: "user not found"
+                message: "user not found."
             }
         }
 
@@ -181,9 +181,44 @@ async function getUserProfile(targetUserId){
     }
 }
 
+async function updateUsername(_userId, _username){
+    try{
+        const targetUser = await user.findByPk(_userId)
+        if(!targetUser){
+            return {
+                status: 404,
+                message: "User not found"
+            }
+        }
+        const existing = await user.findOne({ where: { username: _username } })
+        if(existing){
+            return{
+                status: 400,
+                message: "Username has already been used"
+            }
+        }
+        targetUser.username = _username
+        await targetUser.save()
+
+        return{
+            status: 200,
+            message: `Username successfully changed to ${_username}`,
+            data: targetUser
+        }
+    }
+    catch(error){
+        console.error(`Error while changing username: ${error}`)
+        return{
+            status: 500,
+            message: "Server error while changing username"
+        }
+    }
+}
+
 export {
     getUser, 
     createUser,
     checkCredentials,
-    getUserProfile
+    getUserProfile,
+    updateUsername
 }

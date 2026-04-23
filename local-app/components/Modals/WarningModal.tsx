@@ -1,7 +1,7 @@
 // components/Modals/WarningModal.tsx
-import React from 'react';
-import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import styles from '@/styles/ConfirmationModal.style';
+import React from 'react';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 interface WarningModalProps {
     visible: boolean;

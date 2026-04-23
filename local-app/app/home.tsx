@@ -1,15 +1,15 @@
-import { TouchableOpacity, ScrollView, ActivityIndicator, Text, View, Button, Platform, Alert} from "react-native";
-import Map from '../components/Map';
-import React, { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
-import Navbar from '../components/Navbar';
-import DetailModal from "../components/Modals/DetailModal";
 import AddTagModal from "@/components/Modals/AddTagModal";
 import ConfirmModal from "@/components/Modals/ConfirmationModal";
 import UserProfileModal from "@/components/Modals/UserProfileModal";
 import WarningModal from "@/components/Modals/WarningModal";
-import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
+import { useRouter } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import Map from '../components/Map';
+import DetailModal from "../components/Modals/DetailModal";
+import Navbar from '../components/Navbar';
 
 async function getStorageValue(key: string){
     if (Platform.OS === 'web') {
@@ -39,6 +39,7 @@ function Home() {
     const tokenKey = 'userToken';
 
     const [isLogedIn, setisLogedIn] = useState(false)
+    const [myId, setMyId] = useState<number | null>(null);
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
@@ -63,6 +64,17 @@ function Home() {
     const [pickedLocation, setPickedLocation] = useState<any>(null)
     const [tempLocation, setTempLocation] = useState<any>(null)
 
+    //untuk profile
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [isViewingOwnProfile, setIsViewingOwnProfile] = useState(false);
+
+    //report
+    const [reportVisible, setReportVisible] = useState(false);
+    const [reportTargetType, setReportTargetType] = useState<'User' | 'TagVersion' | 'Comment' | null>(null);
+    const [reportTargetId, setReportTargetId] = useState<number | null>(null);
+    const [reportTargetName, setReportTargetName] = useState<string>('');
+
     //state untuk filter tag
     const [activeFilter, setActiveFilter] = useState<string>('Semua')
 
@@ -72,10 +84,12 @@ function Home() {
     const [isLocating, setIsLocating] = useState(true)
 
     useEffect(() => {
-        const checkLogin = async () => {
+        async function checkLogin() {
             const token = await getStorageValue(tokenKey)
+            const storedId = await getStorageValue('myUserId');
             if(token) {
                 setisLogedIn(true)
+                if(storedId) setMyId(parseInt(storedId))
             }
         }
 
@@ -135,6 +149,12 @@ function Home() {
         }
         setisLogedIn(false)
         setConfirmLogoutVisible(false)
+    }
+
+    function handleOpenMyProfile(){
+        setSelectedUserId(myId);
+        setIsViewingOwnProfile(true);
+        setProfileModalVisible(true);
     }
 
     function showWarning(title: string, message: string, confirmText: string, onConfirmAction?: () => void){
@@ -254,6 +274,7 @@ function Home() {
                     onSearchResults={handleLocationSearch}
                     onPickLocationMode={true}
                     currentUserLocation={currentLocation}
+                    onProfilePress={handleOpenMyProfile}
                 />
             ):(
                 <Navbar 
@@ -262,6 +283,7 @@ function Home() {
                     onSearchResults={handleLocationSearch}
                     onPickLocationMode={false}
                     currentUserLocation={currentLocation}
+                    onProfilePress={handleOpenMyProfile}
                 />
             )}
             {!isSelectingLocation && (
@@ -367,6 +389,20 @@ function Home() {
                     setSelectedTagId(null)
                 }}
                 tagId={selectedTagId}
+                currentUserId={myId}
+            />
+            <UserProfileModal
+                visible={profileModalVisible}
+                onClose={() => setProfileModalVisible(false)}
+                userId={selectedUserId}
+                isOwnProfile={isViewingOwnProfile}
+                onProfileUpdated={loadAllTags}
+                onReportPress={(id, name) => {
+                    setReportTargetType('User');
+                    setReportTargetId(id);
+                    setReportTargetName(name);
+                    setReportVisible(true);
+                }}
             />
             <ConfirmModal
                 visible={confirmLocationVisible}
