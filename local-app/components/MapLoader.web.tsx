@@ -83,6 +83,16 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                     />
                 )
             })}
+            {targetLocation && targetLocation.latitude && targetLocation.longitude && (
+                <Marker
+                    position={[parseFloat(targetLocation.latitude), parseFloat(targetLocation.longitude)]}
+                >
+                    <Popup>
+                        <b>Titik Pilihan</b> <br />
+                        {targetLocation.name || "Titik yang akan dilaporkan"}
+                    </Popup>
+                </Marker>
+            )}
             {tags.map((tag)=>{
                 return(
                     <Marker

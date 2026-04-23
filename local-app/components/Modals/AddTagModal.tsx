@@ -15,6 +15,7 @@ interface AddTagModalProps {
     onTagAdded?: () => void;
     currentUserLocation: {latitude: number, longitude: number} | null
     onSetLocation: (location: any) => void
+    onPreviewLocation: (location: any) => void
 }
 
 async function getStorageValue(key: string){
@@ -39,7 +40,7 @@ export const TAG_TYPES = [
     'Penutupan / Proyek Jalan'
 ];
 
-function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded, currentUserLocation, onSetLocation }: AddTagModalProps) {
+function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTagAdded, currentUserLocation, onSetLocation, onPreviewLocation }: AddTagModalProps) {
     const tokenKey = 'userToken';
    
     const [description, setDescription] = useState("");
@@ -54,14 +55,19 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
     const [warningVisible, setWarningVisible] = useState(false);
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
+    const [warningConfirmText, setWarningConfirmText] = useState("OK");
     const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
     
-    function showWarning(title: string, message: string, onConfirmAction?: () => void){
+    function showWarning(title: string, message: string, onConfirmAction?: () => void, confirmText: string = "OK"){
         setWarningTitle(title);
         setWarningMessage(message);
+        setWarningConfirmText(confirmText)
 
         if (onConfirmAction) {
-            setWarningOnConfirm(() => onConfirmAction);
+            setWarningOnConfirm(() => () => {
+                setWarningVisible(false); 
+                onConfirmAction();
+            });
         } else {
             setWarningOnConfirm(() => () => setWarningVisible(false));
         }
@@ -144,6 +150,23 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
         setIsLoading(true)
         try{
             const {latitude, longitude} = currentUserLocation
+            
+            //fetch jalan terdekat dengan OSRM
+            const osrmUrl = `https://router.project-osrm.org/nearest/v1/driving/${longitude},${latitude}?number=1`
+            const osrmResponse = await fetch(osrmUrl)
+            const osrmData = await osrmResponse.json()
+
+            let snappedLat = latitude
+            let snappedLon = longitude
+            let isSnapped = false
+
+            if(osrmData.code == 'Ok' && osrmData.waypoints && osrmData.waypoints.length > 0){
+                snappedLon = osrmData.waypoints[0].location[0]
+                snappedLat = osrmData.waypoints[0].location[1]
+                isSnapped = true
+            }
+
+            //fetch lokasi saat ini dengan nominatim
             const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
             const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
 
@@ -166,17 +189,31 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                 roadName = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || "Jalan Tidak Dikenal";
             }
 
-            if(onSetLocation){
-                onSetLocation({
-                    latitude: latitude,
-                    longitude: longitude,
-                    name: roadName,
-                    roadClass: roadClass
-                });
-            }
+            const previewData = {
+                latitude: snappedLat,
+                longitude: snappedLon,
+                name: roadName,
+                roadClass: roadClass
+            };
 
-            if(roadName === "Jalan Tidak Dikenal" || !jsonResponse.address?.road){
-                showWarning("Info Lokasi", "Lokasi anda saat ini tidak berada ada jalan utama, titik anda akan ditempatkan ke posisi jalan terdekat")
+            if (isSnapped) {
+                showWarning(
+                    "Lokasi Disesuaikan", 
+                    "Lokasi Anda telah digeser secara otomatis ke jalan raya terdekat. Silakan periksa dan konfirmasi di peta.",
+                    () => onPreviewLocation && onPreviewLocation(previewData),
+                    "Lihat Peta"
+                );
+            } else {
+                let msg = roadName === "Jalan Tidak Dikenal" || !jsonResponse.address?.road
+                    ? "Sistem tidak dapat menemukan jalan terdekat. Titik diletakkan persis di posisi GPS Anda."
+                    : "Lokasi Anda telah ditemukan.";
+                
+                showWarning(
+                    "Info Lokasi", 
+                    `${msg} Silakan konfirmasi di peta.`,
+                    () => onPreviewLocation && onPreviewLocation(previewData),
+                    "Lihat Peta"
+                );
             }
         }
         catch(error){
@@ -442,7 +479,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     visible={warningVisible}
                     title={warningTitle}
                     message={warningMessage}
-                    confirmText="OK"
+                    confirmText={warningConfirmText}
                     onConfirm={warningOnConfirm}
                     onCancel={() => setWarningVisible(false)}
                 />

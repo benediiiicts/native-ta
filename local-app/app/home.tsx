@@ -40,6 +40,7 @@ function Home() {
     const [warningVisible, setWarningVisible] = useState(false);
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
+    const [warningConfirmText, setWarningConfirmText] = useState("")
     const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
 
     const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
@@ -81,7 +82,7 @@ function Home() {
             let {status} = await Location.requestForegroundPermissionsAsync()
             if(status !== 'granted'){
                 setLocationError('Izin akses lokasi ditolak. Beberapa fitur mungkin tidak berfungsi optimal.');
-                showWarning("Izin ditolak", "Aplikasi membutuhkan akses lokasi untuk fitur pelaporan.")
+                showWarning("Izin ditolak", "Aplikasi membutuhkan akses lokasi untuk fitur pelaporan.", "OK")
                 setIsLocating(false)
                 return
             }
@@ -122,9 +123,10 @@ function Home() {
         setConfirmLogoutVisible(false)
     }
 
-    function showWarning(title: string, message: string, onConfirmAction?: () => void){
+    function showWarning(title: string, message: string, confirmText: string, onConfirmAction?: () => void){
         setWarningTitle(title);
         setWarningMessage(message);
+        setWarningConfirmText(confirmText)
 
         if (onConfirmAction) {
             setWarningOnConfirm(() => () => {
@@ -180,7 +182,7 @@ function Home() {
     function handlePickLocation(roadData: any){
         console.log('Masuk function handlePickLocation')
         setTempLocation(roadData)
-        setConfirmLocationVisible(true)
+        setSearchLocation(roadData)
     }
 
     function handleConfirmLocation(){
@@ -188,17 +190,21 @@ function Home() {
         setConfirmLocationVisible(false)
         setAddModalVisible(true)
         setIsSelectingLocation(false)
+        setSearchLocation(null)
     }
 
     function handleCancelLocation(){
         setTempLocation(null)
         setConfirmLocationVisible(false)
+        setIsSelectingLocation(true)
+        setSearchLocation(null)
     }
 
     function handleNotLoggedIn(){
         showWarning(
             'Anda belum login', 
             'Login/ register untuk melakukan aksi', 
+            'Login',
             () => router.push('/login')
         )
     }
@@ -222,14 +228,6 @@ function Home() {
                     </Text>
                 </View>
             )}
-            <Map 
-                active={isSelectingLocation} 
-                targetLocation={searchLocation} 
-                onRoadSelect={handlePickLocation}
-                tags={allTags}
-                onTagSelect={handleSelectTag}
-                currentUserLocation={currentLocation}
-            />
             {isSelectingLocation? (
                 <Navbar 
                     login={isLogedIn} 
@@ -246,19 +244,36 @@ function Home() {
                 />
             )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
-                {isSelectingLocation? (
-                    <Button
-                        title="Cancel"
-                        onPress={()=>{
-                            setIsSelectingLocation(false)
-                            setAddModalVisible(false)
-                        }}
-                    />
+                {isSelectingLocation ? (
+                    <>
+                        <View style={{ marginHorizontal: 5 }}>
+                            <Button
+                                title="Batal"
+                                color="#EF4444"
+                                onPress={()=>{
+                                    setIsSelectingLocation(false)
+                                    setAddModalVisible(false)
+                                    setTempLocation(null)
+                                    setSearchLocation(null)
+                                }}
+                            />
+                        </View>
+
+                        {tempLocation && (
+                            <View style={{ marginHorizontal: 5 }}>
+                                <Button
+                                    title="Konfirmasi Lokasi"
+                                    color="#10B981"
+                                    onPress={() => setConfirmLocationVisible(true)}
+                                />
+                            </View>
+                        )}
+                    </>
                 ):(
                     <Button
-                        title="Add Tag"
+                        title="Buat Laporan Baru"
                         onPress={()=>{
-                            (isLogedIn? setAddModalVisible(true): handleNotLoggedIn())
+                            (isLogedIn ? setAddModalVisible(true) : handleNotLoggedIn())
                         }}
                     />
                 )}
@@ -269,12 +284,19 @@ function Home() {
                 onClose={() => {
                     setAddModalVisible(false)
                     setPickedLocation(null)
+                    setSearchLocation(null)
                 }}
                 onPickLocation={selectLocation}
                 selectedLocation={pickedLocation}
                 onTagAdded={loadAllTags}
                 currentUserLocation={currentLocation}
                 onSetLocation={setPickedLocation}
+                onPreviewLocation={(locData: any)=>{
+                    setAddModalVisible(false)
+                    setSearchLocation(locData)
+                    setTempLocation(locData)
+                    setIsSelectingLocation(true)
+                }}
             />
             <DetailModal
                 visible={DetailModalVisible}
@@ -306,7 +328,7 @@ function Home() {
                 visible={warningVisible}
                 title={warningTitle}
                 message={warningMessage}
-                confirmText="Login"
+                confirmText={warningConfirmText}
                 onConfirm={warningOnConfirm}
                 onCancel={() => setWarningVisible(false)}
             />
