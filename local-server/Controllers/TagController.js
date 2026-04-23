@@ -4,8 +4,10 @@ import {
     getTagDetail,
     getVersionHistory,
     createTagVersion, 
-    voteTagVersion} from '../Services/TagService.js'
+    voteTagVersion,
+    checkRecentUpdate} from '../Services/TagService.js'
 import {saveImages} from '../Services/MediaService.js'
+import { tagRoads } from '../Models/TagModel.js'
 
 async function addNewTagRoad(req, res){
     try{
@@ -116,11 +118,31 @@ async function fetchVersionHistory(req, res){
     }
 }
 
+async function checkUpdates(req, res){
+    try{
+        const {lat, lon, lastFetch} = req.query
+
+        if(!lat || !lon || !lastFetch){
+            return res.status(400).json({
+                message: "All parameters must be filled"
+            })
+        }
+
+        const result = await checkRecentUpdate(lat, lon, lastFetch)
+        return res.status(200).json(result) 
+    }
+    catch(error){
+        console.error(`Error while fetching updates: ${error}`)
+        return res.status(500).json({message: "Internal server error"})
+    }
+}
+
 export {
     addNewTagRoad,
     addNewTagVersion,
     fetchAllTags,
     fetchTagDetails,
     handleVote,
-    fetchVersionHistory
+    fetchVersionHistory,
+    checkUpdates
 }

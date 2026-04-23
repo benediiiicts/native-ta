@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 import Map from '../components/Map';
 import DetailModal from "../components/Modals/DetailModal";
 import Navbar from '../components/Navbar';
@@ -43,6 +44,10 @@ function Home() {
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
+
+    //fetch time untuk notifikasi
+    const [lastFetchTime, setLastFetchTime] = useState<string>(new Date().toISOString());
+    const [hasNewUpdates, setHasNewUpdates] = useState(false);
 
     //state untuk modal konfirmasi
     const [confirmLocationVisible, setConfirmLocationVisible] = useState(false);
@@ -102,7 +107,28 @@ function Home() {
 
     useEffect(() => {
         getUserLocation();
-    }, []);
+    }, [])
+
+    useEffect(() => {
+        if(!currentLocation || isSelectingLocation) return
+        const checkUpdates = setInterval(async () => {
+            try{
+                const {latitude, longitude} = currentLocation
+                const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/check-updates?lat=${latitude}&lon=${longitude}&lastFetch=${encodeURIComponent(lastFetchTime)}`;
+                const response = await fetch(apiUrl)
+                const jsonResponse = await response.json()
+                if(jsonResponse.status == 200 && jsonResponse.data.hasUpdates){
+                    setHasNewUpdates(true)
+                }
+            }
+            catch(error){
+                console.error(`Polling error: ${error}`)
+            }
+        }, 3*60*1000)
+
+        return () => clearInterval(checkUpdates)
+
+    }, [currentLocation, lastFetchTime, isSelectingLocation])
 
     async function getUserLocation(){
         setIsLocating(true)
@@ -181,6 +207,8 @@ function Home() {
             const jsonResponse = await response.json()
             if(jsonResponse.status == 200){
                 setAllTags(jsonResponse.data)
+                setLastFetchTime(new Date().toISOString)
+                setHasNewUpdates(false)
             }
         }
         catch(error){
@@ -325,6 +353,31 @@ function Home() {
                             )
                         })}
                     </ScrollView>
+                </View>
+            )}
+            {hasNewUpdates && !isSelectingLocation && (
+                <View style={{ position: 'absolute', top: 130, alignSelf: 'center', zIndex: 15 }}>
+                    <TouchableOpacity 
+                        style={{
+                            backgroundColor: '#10B981',
+                            paddingHorizontal: 20,
+                            paddingVertical: 10,
+                            borderRadius: 30,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.2,
+                            shadowRadius: 5,
+                            elevation: 6
+                        }}
+                        onPress={() => loadAllTags()}
+                    >
+                        <Ionicons name="refresh-circle" size={24} color="white" style={{ marginRight: 6 }} />
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>
+                            Pembaruan Baru Tersedia
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             )}
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
