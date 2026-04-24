@@ -137,7 +137,7 @@ function Home() {
             catch(error){
                 console.error(`Polling error: ${error}`)
             }
-        }, 3*60*1000)
+        }, 3*60*100)
 
         return () => clearInterval(checkUpdates)
 
@@ -481,6 +481,7 @@ function Home() {
                 tagId={selectedTagId}
                 currentUserId={myId}
                 userRole={myRole}
+                onTagUpdated={loadAllTags}
             />
             <UserProfileModal
                 visible={profileModalVisible}
