@@ -48,7 +48,8 @@ async function checkCredentials(_email, _password){
                 user: {
                     id: tempUser.data.id,
                     username: tempUser.data.username,
-                    email: tempUser.data.email
+                    email: tempUser.data.email,
+                    role: tempUser.data.role
                 },
                 token: _token
             }

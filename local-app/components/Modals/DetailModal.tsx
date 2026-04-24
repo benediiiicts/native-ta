@@ -8,6 +8,7 @@ import WarningModal from "@/components/Modals/WarningModal";
 import AddVersionModal from './AddVersionModal';
 import UserProfileModal from "./UserProfileModal";
 import ReportModal from "./ReportModal";
+import TagManageModal from "./TagManageModal";
 
 interface DetailModalProps {
     visible: boolean;
@@ -37,6 +38,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
     const [isLoading, setIsLoading] = useState(false)
     const [tagData, setTagData] = useState<any>(null)
     const [viewedVersionId, setViewedVersionId] = useState<number | null>(null);
+    const [manageTagVisible, setManageTagVisible] = useState(false)
 
     //untuk slide image
     const [activeIndex, setActiveIndex] = useState(0)
@@ -120,7 +122,6 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
-
             const response = await fetch(apiUrl, {headers})
             const jsonResponse = await response.json()
             if(jsonResponse.data){
@@ -322,7 +323,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
     }
 
     function handleAdminTagActions(){
-        
+        setManageTagVisible(true)
     }
 
     function handleScroll(event: any) {
@@ -825,6 +826,21 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
                     setReportTargetName(name);
                     setReportVisible(true);
                     setProfileModalVisible(false)
+                }}
+            />
+
+            <TagManageModal
+                visible={manageTagVisible}
+                onClose={()=>setManageTagVisible(false)}
+                tagId={tagId}
+                versionId={tagData?.activeVersion?.id || null}
+                initialData={tagData?{
+                    isVerified: tagData.activeVersion?.isVerified || false,
+                    roadIsActive: !tagData.isHidden,
+                    versionIsActive: true
+                }: null}
+                onActionSuccess={()=>{
+                    fetchTagDetail()
                 }}
             />
         </Modal>
