@@ -37,6 +37,9 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
         }
 
         if(currentUserLocation){
+            //catatan offset:
+            //1 offset = ~11km
+            //0.2 offset = ~22km
             const offset = 0.2;
             const left = currentUserLocation.longitude - offset;
             const top = currentUserLocation.latitude + offset;

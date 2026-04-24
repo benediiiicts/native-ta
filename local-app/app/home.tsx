@@ -5,9 +5,10 @@ import WarningModal from "@/components/Modals/WarningModal";
 import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from '@expo/vector-icons';
 import Map from '../components/Map';
 import DetailModal from "../components/Modals/DetailModal";
 import Navbar from '../components/Navbar';
@@ -23,6 +24,12 @@ async function getStorageValue(key: string){
     } else {
         return await SecureStore.getItemAsync(key);
     }
+}
+
+interface DecodedToken extends JwtPayload {
+    id: number;
+    email: string;
+    role: string;
 }
 
 const TAG_CATEGORIES = [
@@ -93,12 +100,11 @@ function Home() {
     useEffect(() => {
         async function checkLogin() {
             const token = await getStorageValue(tokenKey)
-            const storedId = await getStorageValue('myUserId');
-            const storedRole = await getStorageValue('myUserRole')
-            if(token) {
+            if(token){
+                const decoded: DecodedToken = jwtDecode(token)
                 setisLogedIn(true)
-                if(storedId) setMyId(parseInt(storedId))
-                if(storedRole) setMyRole(storedRole)
+                setMyId(decoded.id)
+                setMyRole(decoded.role)
             }
         }
         checkLogin()
@@ -443,7 +449,7 @@ function Home() {
                 >
                     <Ionicons name={showHiddenTags ? "eye" : "eye-off"} size={20} color="white" />
                     <Text style={{ color: 'white', marginLeft: 8, fontWeight: 'bold', fontSize: 12 }}>
-                        {showHiddenTags ? "Mode Admin: Tampil Semua" : "Mode Admin: Sembunyikan Hidden"}
+                        {showHiddenTags ? "Mode Admin: Tampilkan Semua Tag" : "Mode Admin: Sembunyikan Hidden Tag"}
                     </Text>
                 </TouchableOpacity>
             )}
@@ -474,6 +480,7 @@ function Home() {
                 }}
                 tagId={selectedTagId}
                 currentUserId={myId}
+                userRole={myRole}
             />
             <UserProfileModal
                 visible={profileModalVisible}

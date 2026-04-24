@@ -1,9 +1,9 @@
-import React, {useState, useEffect, use} from "react";
-import { View, Text, Modal, TouchableOpacity, TextInput, ActivityIndicator, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import WarningModal from "@/components/Modals/WarningModal";
+import styles from '@/styles/ReportModal.styles';
+import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import styles from '@/styles/ReportModal.styles'; 
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface TagManageModalProps{
     visible: boolean
@@ -58,7 +58,7 @@ function TagManageModal({visible, onClose, tagId, versionId, initialData, onActi
             const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/admin/tags/manage`
 
             const response = await fetch(apiUrl,{
-                method:'POST',
+                method:'PUT',
                 headers:{
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -93,7 +93,10 @@ function TagManageModal({visible, onClose, tagId, versionId, initialData, onActi
     return(
         <Modal visible={visible} transparent animationType="slide">
             <View style={styles.overlay}>
-                <KeyboardAvoidingView behavior={Platform.OS == 'ios'? "padding" : "height"}>
+                <KeyboardAvoidingView 
+                    behavior={Platform.OS == 'ios'? "padding" : "height"}
+                    style={styles.modalContainer}
+                    >
                     <View style={styles.header}>
                         <Text style={styles.headerTitle}>Moderasi Tag Admin</Text>
                         <TouchableOpacity onPress={onClose}>
@@ -103,7 +106,7 @@ function TagManageModal({visible, onClose, tagId, versionId, initialData, onActi
 
                     <ScrollView style={styles.content}>
                         <Text style={styles.label}>
-                            Status Vverifikasi
+                            Status Verifikasi
                         </Text>
                         <View style={styles.reasonContainer}>
                             <TouchableOpacity
@@ -124,11 +127,11 @@ function TagManageModal({visible, onClose, tagId, versionId, initialData, onActi
                             {[
                                 { id: 'active', label: 'Aktif (Tampil)', icon: 'eye' },
                                 { id: 'hide_version', label: 'Sembunyikan Versi Ini', icon: 'eye-off' },
-                                { id: 'hide_road', label: 'Sembunyikan Seluruh Jalan', icon: 'trash' },
+                                { id: 'hide_road', label: 'Sembunyikan Tag Jalan', icon: 'trash' },
                             ].map((opt) => (
                                 <TouchableOpacity
                                     key={opt.id}
-                                    style={[styles.reasonChip, visibility === opt.id && { backgroundColor: '#EF4444' }]}
+                                    style={[styles.reasonChip, visibility === opt.id && (opt.id !== 'active' ? { backgroundColor: '#EF4444' } : { backgroundColor: '#006aff' })]}
                                     onPress={()=> setVisibility(opt.id as any)}
                                 >
                                     <Text style={[styles.reasonText, visibility === opt.id && { color: 'white' }]}>{opt.label}</Text>
@@ -148,7 +151,7 @@ function TagManageModal({visible, onClose, tagId, versionId, initialData, onActi
 
                     <View style={styles.footer}>
                         <TouchableOpacity
-                            style={[styles.submitBtn, { backgroundColor: '#8B5CF6' }]}
+                            style={[styles.submitBtn, { backgroundColor: '#006aff' }]}
                             onPress={handleAdminAction}
                             disabled={isSubmitting}
                         >
