@@ -43,7 +43,7 @@ async function addNewTagVersion(req, res){
 async function fetchAllTags(req, res){
     try{
         const showHidden = req.query?.includeHidden || "false"
-        const userId = req.user.id
+        const userId = req.user?.id
         const tags = await getAllTags(userId, showHidden);
         
         return res.status(tags.status).json({

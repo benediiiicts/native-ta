@@ -38,7 +38,6 @@ const tagRoads = sequelize.define('TagRoad',
         tableName: 'tag_roads',
         underscored: true,
         timestamps: true,
-        updatedAt: false
     }
 )
 
@@ -90,7 +89,6 @@ const tagVersions = sequelize.define('TagVersion',
         tableName: 'tag_versions',
         underscored: true,
         timestamps: true,
-        updatedAt: false
     }
 )
 

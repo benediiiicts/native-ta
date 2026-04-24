@@ -16,6 +16,7 @@ interface DetailModalProps {
     tagId: number | null;
     currentUserId?: number | null;
     userRole?: string;
+    onTagUpdated?: () => void;
 }
 
 async function getStorageValue(key: string){
@@ -31,7 +32,7 @@ async function getStorageValue(key: string){
     }
 }
 
-function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: DetailModalProps) {
+function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUpdated }: DetailModalProps) {
     const tokenKey = 'userToken';
 
     //untuk data detail tag
@@ -841,6 +842,8 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
                 }: null}
                 onActionSuccess={()=>{
                     fetchTagDetail()
+                    if (onTagUpdated) onTagUpdated()
+                    onClose();
                 }}
             />
         </Modal>
