@@ -4,7 +4,7 @@ export const styles = StyleSheet.create({
     // --- STYLE WEB ---
     container: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 40, 
+        top: Platform.OS === 'ios' ? 60 : 30, 
         left: 15,
         right: 15,
         flexDirection: 'row',

@@ -94,11 +94,13 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
 
     const visibleTags = tags.filter((tag)=>{
         const rc = tag.roadClass?.toLowerCase() || 'unclassified';
-        if(currentZoom < 14){
-            return ['motorway', 'trunk', 'primary'].includes(rc)
+        if (currentZoom < 12) {
+            return false
         }
-        else if(currentZoom < 16){
-            return ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'].includes(rc);
+        else if (currentZoom < 14) {
+            return ['motorway', 'trunk', 'primary'].includes(rc)
+        } else if (currentZoom < 16) {
+            return ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'].includes(rc)
         }
         return true
     })
