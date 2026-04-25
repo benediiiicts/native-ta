@@ -1,4 +1,7 @@
 import L from 'leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
@@ -39,7 +42,10 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
     const visibleTags = tags.filter((tag)=>{
         const rc = tag.roadClass?.toLowerCase() || 'unclassified';
         
-        if (currentZoom < 14) {
+        if (currentZoom < 12) {
+            return false;
+        }
+        else if (currentZoom < 14) {
             return ['motorway', 'trunk', 'primary'].includes(rc);
         } else if (currentZoom < 16) {
             return ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'].includes(rc);
@@ -114,25 +120,32 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                     </Popup>
                 </Marker>
             )}
-            {visibleTags.map((tag)=>{
-                return(
-                    <Marker
-                        key={tag.id}
-                        position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
-                        icon={redIcon}
-                    >
-                        <Popup>
-                            <div 
-                                onClick={() => onTagSelect(tag)} 
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <b>{tag.issueType || tag.issue_type}</b> <br />
-                                Klik untuk melihat detail.
-                            </div>
-                        </Popup>
-                    </Marker>
-                )
-            })}
+            
+            <MarkerClusterGroup
+                chunkedLoading
+                spiderfyOnMaxZoom={true}
+                showCoverageOnHover={false}
+            >
+                {visibleTags.map((tag)=>{
+                    return(
+                        <Marker
+                            key={tag.id}
+                            position={[parseFloat(tag.latitude), parseFloat(tag.longitude)]}
+                            icon={redIcon}
+                        >
+                            <Popup>
+                                <div 
+                                    onClick={() => onTagSelect(tag)} 
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <b>{tag.issueType || tag.issue_type}</b> <br />
+                                    Klik untuk melihat detail.
+                                </div>
+                            </Popup>
+                        </Marker>
+                    )
+                })}
+            </MarkerClusterGroup>
         </MapContainer>
     )
 }

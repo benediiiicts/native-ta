@@ -11,7 +11,7 @@ interface NavbarProps {
     onPickLocationMode: boolean;
     currentUserLocation?: {latitude: number, longitude: number} | null;
     onProfilePress: () => void
-    userRole: string
+    userRole: string | null
 }
 
 function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation, onProfilePress, userRole }: NavbarProps) {

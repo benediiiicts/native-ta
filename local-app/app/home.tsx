@@ -48,7 +48,7 @@ function Home() {
 
     const [isLogedIn, setisLogedIn] = useState(false)
     const [myId, setMyId] = useState<number | null>(null);
-    const [myRole, setMyRole] = useState('user')
+    const [myRole, setMyRole] = useState<string | null>(null)
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
@@ -137,7 +137,7 @@ function Home() {
             catch(error){
                 console.error(`Polling error: ${error}`)
             }
-        }, 3*60*100)
+        }, 3*60*1000)
 
         return () => clearInterval(checkUpdates)
 
