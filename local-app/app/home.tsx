@@ -6,7 +6,7 @@ import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Map from '../components/Map';
@@ -427,14 +427,41 @@ function Home() {
                         )}
                     </>
                 ):(
-                    <Button
-                        title="Buat Laporan Baru"
+                    <TouchableOpacity
+                        style={{borderRadius: 20, backgroundColor: "#3c82e4", padding: 10}}
                         onPress={()=>{
                             (isLogedIn ? setAddModalVisible(true) : handleNotLoggedIn())
                         }}
-                    />
+                    >
+                        <Text style={{ color: 'white', marginLeft: 8, marginRight: 8, fontWeight: 'bold', fontSize: 14 }}>
+                            Buat Laporan Baru
+                        </Text>
+                    </TouchableOpacity>
                 )}
-                
+                {!isSelectingLocation && (
+                    <TouchableOpacity
+                        style={{
+                            borderRadius: 20, 
+                            backgroundColor: "#3c82e4", 
+                            padding: 10,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginTop: 10
+                        }}
+                        onPress={()=>{
+                            setSearchLocation({
+                                ...currentLocation,
+                                _timestamp: new Date().getTime()
+                            })
+                        }}
+                    >
+                        <MaterialCommunityIcons name="crosshairs-gps" size={16} color="#ffffff" />
+                        <Text style={{ color: 'white', marginLeft: 4, marginRight: 8, fontWeight: 'bold', fontSize: 14 }}>
+                            Lokasi saya
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Jika admin, tunjukkan tombol show hidden tags */}
