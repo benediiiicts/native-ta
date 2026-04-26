@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Modal, FlatList, Text, TouchableOpacity } from "react-native";
 import MapView, { Marker, Polyline, UrlTile, type Region } from "react-native-maps";
+import styles from "@/styles/Map.native.styles";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 let API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=${API_KEY}`;
@@ -29,6 +31,8 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
     let [road, setRoad] = useState<any[]>([]);
     let [currentZoom, setCurrentZoom] = useState<number>(14);
     let timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    //untuk grouping tag
+    const [stackedTagsModal, setStackedTagsModal] = useState<{visible: boolean, tags: any[]}>({visible: false, tags: []});
     let mapRef = useRef<MapView>(null)
 
     useEffect(()=>{
@@ -69,6 +73,21 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
             setRoad([])
         }
     };
+
+    function checkRadius(lat1: number, lon1: number, lat2: number, lon2: number){
+        const earthRadius = 6371000
+        const p1 = lat1 * Math.PI / 180
+        const p2 = lat2 * Math.PI / 180
+        const dp = (lat2 - lat1) * Math.PI / 180
+        const dl = (lon2 - lon1) * Math.PI / 180
+
+        const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
+                Math.cos(p1) * Math.cos(p2) *
+                Math.sin(dl / 2) * Math.sin(dl / 2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+        return earthRadius * c
+    }
     
     useEffect(()=>{
         if(active && mapRef.current){
@@ -91,7 +110,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
             })
         }
     }, [targetLocation, mapRef])
-
+    
     const visibleTags = tags.filter((tag)=>{
         const rc = tag.roadClass?.toLowerCase() || 'unclassified';
         if (currentZoom < 12) {
@@ -105,12 +124,39 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
         return true
     })
 
+    const maxDistance = 10 //meter
+    const groupedTags: any[][] = []
+
+    visibleTags.forEach((tag) => {
+        let addedToGroup = false
+        for(let i = 0; i < groupedTags.length; i++){
+            const group = groupedTags[i]
+            const centerTag = group[0]
+
+            const distance = checkRadius(
+                parseFloat(tag.latitude),
+                parseFloat(tag.longitude),
+                parseFloat(centerTag.latitude),
+                parseFloat(centerTag.longitude)
+            )
+
+            if(distance <= maxDistance){
+                group.push(tag)
+                addedToGroup = true
+                break;
+            }
+        }
+        if(!addedToGroup){
+            groupedTags.push([tag])
+        }
+    })
+
     return (
         <View style={styles.wrapper}>
             <MapView 
                 style={styles.map}
                 onRegionChangeComplete={handleRegionChange}
-                region={{
+                initialRegion={{
                     latitude: currentUserLocation.latitude,
                     longitude: currentUserLocation.longitude,
                     latitudeDelta: 0.05,
@@ -164,18 +210,48 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                         />
                     );
                 })}
+
+                {groupedTags.map((group: any[], index)=>{
+                    const isStacked = group.length > 1
+                    const firstTag = group[0]
+
+                    return(
+                        <Marker
+                            style={{zIndex: 2}}
+                            key={`group_${index}`}
+                            coordinate={{
+                                latitude: parseFloat(firstTag.latitude),
+                                longitude: parseFloat(firstTag.longitude),
+                            }}
+                            pinColor={isStacked? "yellow" : "red"}
+                            title={isStacked ? `${group.length} Laporan` : (firstTag.issueType || firstTag.issue_type)}
+                            description={isStacked ? "Tekan untuk melihat daftar" : "Klik untuk melihat detail"}
+                            onPress={()=>{
+                                if(isStacked){
+                                    setStackedTagsModal({ visible: true, tags: group })
+                                }
+                                else{
+                                    onTagSelect(firstTag)
+                                }
+                            }}
+                        />
+                    )
+                })}
+                
                 {targetLocation && targetLocation.latitude && targetLocation.longitude && (
                     <Marker
+                        style={{zIndex: 1}}
                         coordinate={{
                             latitude: parseFloat(targetLocation.latitude),
                             longitude: parseFloat(targetLocation.longitude),
                         }}
                         pinColor="blue"
                         title="Titik Pilihan"
-                        description={targetLocation.name || "Titik yang akan dilaporkan"}
+                        description={targetLocation.name || "Lokasi anda saat ini"}
                     />
                 )}
-                {/* {tags.map((tag) => {
+                
+                {/* {visibleTags.map((tag)=>{
                     return (
                         <Marker
                             key={tag.id}
@@ -189,29 +265,55 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                         />
                     );
                 })} */}
-
-                {visibleTags.map((tag)=>{
-                    return (
-                        <Marker
-                            key={tag.id}
-                            coordinate={{
-                                latitude: parseFloat(tag.latitude),
-                                longitude: parseFloat(tag.longitude),
-                            }}
-                            title={tag.issueType || tag.issue_type}
-                            description="Klik untuk melihat detail"
-                            onPress={() => onTagSelect(tag)}
-                        />
-                    );
-                })}
             </MapView>
+
+            <Modal
+                visible={stackedTagsModal.visible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={()=>{
+                    setStackedTagsModal({visible: false, tags: []})
+                }}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHeader}>
+                            <Text style={styles.sheetTitle}>
+                                {stackedTagsModal.tags.length} Laporan di Titik Ini
+                            </Text>
+                            <TouchableOpacity onPress={() => setStackedTagsModal({visible: false, tags: []})}>
+                                <Ionicons name="close-circle" size={28} color="#4B5563" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <FlatList
+                            data={stackedTagsModal.tags}
+                            keyExtractor={(item, idx) => `${item.id}_${idx}`}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    style={styles.clusterItem}
+                                    onPress={() => {
+                                        setStackedTagsModal({visible: false, tags: []}); 
+                                        onTagSelect(item);
+                                    }}
+                                >
+                                    <View style={styles.itemIcon}>
+                                        <Ionicons name="warning" size={24} color="#EF4444" />
+                                    </View>
+                                    <View style={styles.itemContent}>
+                                        <Text style={styles.itemTitle}>{item.issueType || item.issue_type}</Text>
+                                        <Text style={styles.itemSubtitle}>Ketuk untuk melihat detail</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                                </TouchableOpacity>
+                            )}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    wrapper: { flex: 1 },
-    map: { ...StyleSheet.absoluteFillObject },
-});
 
 export default Map;
