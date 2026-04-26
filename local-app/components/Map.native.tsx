@@ -12,7 +12,7 @@ async function fetchOverpass(s: number, w: number, n: number, e: number) {
     let query = `
         [out:json][timeout:30];
         way["highway"](${s}, ${w}, ${n}, ${e});
-        out geom;
+        out geom;z
     `;
     let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 

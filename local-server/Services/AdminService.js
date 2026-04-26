@@ -1,5 +1,6 @@
 import sequelize from '../database.js';
 import { tagRoads, tagVersions } from '../Models/TagModel.js';
+import { notification } from '../Models/NotificationModel.js'
 
 async function manageTags(_tagId, _versionId, _isVerified, _visibility, _adminNotes){
     try{
@@ -32,12 +33,33 @@ async function manageTags(_tagId, _versionId, _isVerified, _visibility, _adminNo
             await version.save({transaction: t})
             await road.save({transaction: t})
 
+            let notifTitle = ''
+            let notifType = "info"
+            
+            if(_visibility === 'hide_road' || _visibility === 'hide_version') {
+                notifTitle = "Konten Anda Disembunyikan";
+                notifType = "warning";
+            } else if(_isVerified) {
+                notifTitle = "Laporan Anda Terverifikasi";
+                notifType = "success";
+            }
+            
+            if(notifTitle){
+                await notification.create({
+                    userId: version.userId,
+                    title: notifTitle,
+                    type: notifType,
+                    message: _adminNotes || "Admin telah melakukan tindakan moderasi pada laporan Anda.",
+                    actionType: _visibility
+                }, {transaction: t})
+            }
+
             return{
                 status: 200,
                 message: "Tag successfully updated"
             }
         })
-        
+
         return result
     }
     catch(error){
