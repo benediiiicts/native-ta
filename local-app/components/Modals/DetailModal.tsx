@@ -1,20 +1,23 @@
+import WarningModal from "@/components/Modals/WarningModal";
 import { styles } from "@/styles/DetailModal.styles";
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from "react";
-import { TouchableWithoutFeedback, Dimensions, TextInput, Modal, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import WarningModal from "@/components/Modals/WarningModal";
+import { Dimensions, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import AddVersionModal from './AddVersionModal';
-import UserProfileModal from "./UserProfileModal";
 import ReportModal from "./ReportModal";
+import TagManageModal from "./TagManageModal";
+import UserProfileModal from "./UserProfileModal";
 
 interface DetailModalProps {
     visible: boolean;
     onClose: () => void;
     tagId: number | null;
     currentUserId?: number | null;
-    userRole?: string;
+    userRole?: string | null;
+    onTagUpdated?: () => void;
 }
 
 async function getStorageValue(key: string){
@@ -30,13 +33,14 @@ async function getStorageValue(key: string){
     }
 }
 
-function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: DetailModalProps) {
+function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUpdated }: DetailModalProps) {
     const tokenKey = 'userToken';
 
     //untuk data detail tag
     const [isLoading, setIsLoading] = useState(false)
     const [tagData, setTagData] = useState<any>(null)
     const [viewedVersionId, setViewedVersionId] = useState<number | null>(null);
+    const [manageTagVisible, setManageTagVisible] = useState(false)
 
     //untuk slide image
     const [activeIndex, setActiveIndex] = useState(0)
@@ -120,7 +124,6 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
-
             const response = await fetch(apiUrl, {headers})
             const jsonResponse = await response.json()
             if(jsonResponse.data){
@@ -165,7 +168,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
         }
         const token = await getStorageValue(tokenKey)
         if(!token){
-            showWarning("Akses Ditolak", "Silakan login untuk berkomentar.");
+            showWarning("Akses Ditolak", "Silakan login untuk berkomentar.", ()=>{router.push('/login'); onClose()});
             return
         }
         setIsSubmittingComment(true)
@@ -321,8 +324,33 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
         }
     }
 
+    function handleReport(type: 'User' | 'TagVersion' | 'Comment', id: any, name=null){
+        if(!type || !id){
+            showWarning("Terjadi kesalahan", "Tidak bisa melakukan report")
+            return
+        }
+        if(!userRole){
+            showWarning("Akses Ditolak", "Login untuk dapat melakukan report", ()=>{router.push('/login'); onClose();})
+            return
+        }
+        if(name){
+            setReportTargetName(name)
+        }
+        setReportTargetType(type);
+        setReportTargetId(id);
+        setReportVisible(true);
+    }
+
+    function handleAddVersion(){
+        if(!userRole){
+            showWarning("Akses Ditolak", "Login untuk memperbarui infomasi laporan", ()=>{router.push('/login'); onClose();})
+            return
+        }
+        setAddVersionVisible(true)
+    }
+
     function handleAdminTagActions(){
-        
+        setManageTagVisible(true)
     }
 
     function handleScroll(event: any) {
@@ -495,7 +523,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
                     <View style={styles.actionGroup}>
                         <TouchableOpacity 
                             style={styles.addVersionButton} 
-                            onPress={() => setAddVersionVisible(true)}
+                            onPress={handleAddVersion}
                         >
                             <FontAwesome5 name="pen" size={20} color="#374151" />
                         </TouchableOpacity>
@@ -506,9 +534,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
                         ):(
                         <TouchableOpacity 
                             onPress={() => {
-                                setReportTargetType('TagVersion');
-                                setReportTargetId(activeVersion.id);
-                                setReportVisible(true);
+                                handleReport('TagVersion', activeVersion.id)
                             }}
                         >
                             <MaterialIcons name="report" size={28} color="#374151" />
@@ -731,9 +757,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
                                                 {comment.commentAuthor?.username || 'Anonymous'}
                                             </Text>
                                             <TouchableOpacity onPress={() => {
-                                                setReportTargetType('Comment');
-                                                setReportTargetId(comment.id);
-                                                setReportVisible(true);
+                                                handleReport('Comment', comment.id)
                                             }}>
                                                 <MaterialIcons name="more-vert" size={20} color="#9CA3AF" />
                                             </TouchableOpacity>
@@ -820,11 +844,25 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole }: Detai
                 isOwnProfile={selectedUserId === currentUserId} 
                 onProfileUpdated={() => fetchTagDetail()}
                 onReportPress={(id, name) => {
-                    setReportTargetType('User');
-                    setReportTargetId(id);
-                    setReportTargetName(name);
-                    setReportVisible(true);
+                    handleReport('User', id, name as any)
                     setProfileModalVisible(false)
+                }}
+            />
+
+            <TagManageModal
+                visible={manageTagVisible}
+                onClose={()=>setManageTagVisible(false)}
+                tagId={tagId}
+                versionId={tagData?.activeVersion?.id || null}
+                initialData={tagData?{
+                    isVerified: tagData.activeVersion?.isVerified || false,
+                    roadIsActive: !tagData.isHidden,
+                    versionIsActive: true
+                }: null}
+                onActionSuccess={()=>{
+                    fetchTagDetail()
+                    if (onTagUpdated) onTagUpdated()
+                    onClose();
                 }}
             />
         </Modal>

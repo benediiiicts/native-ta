@@ -5,9 +5,10 @@ import WarningModal from "@/components/Modals/WarningModal";
 import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from '@expo/vector-icons';
 import Map from '../components/Map';
 import DetailModal from "../components/Modals/DetailModal";
 import Navbar from '../components/Navbar';
@@ -23,6 +24,12 @@ async function getStorageValue(key: string){
     } else {
         return await SecureStore.getItemAsync(key);
     }
+}
+
+interface DecodedToken extends JwtPayload {
+    id: number;
+    email: string;
+    role: string;
 }
 
 const TAG_CATEGORIES = [
@@ -41,10 +48,11 @@ function Home() {
 
     const [isLogedIn, setisLogedIn] = useState(false)
     const [myId, setMyId] = useState<number | null>(null);
-    const [myRole, setMyRole] = useState('user')
+    const [myRole, setMyRole] = useState<string | null>(null)
 
     //tags
     const [allTags, setAllTags] = useState<any[]>([])
+    const [showHiddenTags, setShowHiddenTags] = useState(false);
 
     //fetch time untuk notifikasi
     const [lastFetchTime, setLastFetchTime] = useState<string>(() => new Date().toISOString());
@@ -92,12 +100,11 @@ function Home() {
     useEffect(() => {
         async function checkLogin() {
             const token = await getStorageValue(tokenKey)
-            const storedId = await getStorageValue('myUserId');
-            const storedRole = await getStorageValue('myUserRole')
-            if(token) {
+            if(token){
+                const decoded: DecodedToken = jwtDecode(token)
                 setisLogedIn(true)
-                if(storedId) setMyId(parseInt(storedId))
-                if(storedRole) setMyRole(storedRole)
+                setMyId(decoded.id)
+                setMyRole(decoded.role)
             }
         }
         checkLogin()
@@ -110,6 +117,10 @@ function Home() {
     useEffect(() => {
         getUserLocation();
     }, [])
+
+    useEffect(()=>{
+        loadAllTags()
+    }, [showHiddenTags])
 
     useEffect(() => {
         if(!currentLocation || isSelectingLocation) return
@@ -204,8 +215,13 @@ function Home() {
 
     async function loadAllTags(){
         try{
-            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/fetch-all`
-            const response = await fetch(apiUrl)
+            const token = await getStorageValue(tokenKey)
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/fetch-all?includeHidden=${showHiddenTags}`;
+            const response = await fetch(apiUrl,{
+                headers:{
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const jsonResponse = await response.json()
             if(jsonResponse.status == 200){
                 setAllTags(jsonResponse.data)
@@ -411,15 +427,59 @@ function Home() {
                         )}
                     </>
                 ):(
-                    <Button
-                        title="Buat Laporan Baru"
+                    <TouchableOpacity
+                        style={{borderRadius: 20, backgroundColor: "#3c82e4", padding: 10}}
                         onPress={()=>{
                             (isLogedIn ? setAddModalVisible(true) : handleNotLoggedIn())
                         }}
-                    />
+                    >
+                        <Text style={{ color: 'white', marginLeft: 8, marginRight: 8, fontWeight: 'bold', fontSize: 14 }}>
+                            Buat Laporan Baru
+                        </Text>
+                    </TouchableOpacity>
                 )}
-                
+                {!isSelectingLocation && (
+                    <TouchableOpacity
+                        style={{
+                            borderRadius: 20, 
+                            backgroundColor: "#3c82e4", 
+                            padding: 10,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginTop: 10
+                        }}
+                        onPress={()=>{
+                            setSearchLocation({
+                                ...currentLocation,
+                                _timestamp: new Date().getTime()
+                            })
+                        }}
+                    >
+                        <MaterialCommunityIcons name="crosshairs-gps" size={16} color="#ffffff" />
+                        <Text style={{ color: 'white', marginLeft: 4, marginRight: 8, fontWeight: 'bold', fontSize: 14 }}>
+                            Lokasi saya
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
+
+            {/* Jika admin, tunjukkan tombol show hidden tags */}
+            {myRole === 'admin' && !isSelectingLocation && (
+                <TouchableOpacity 
+                    onPress={() => setShowHiddenTags(!showHiddenTags)}
+                    style={{
+                        position: 'absolute', bottom: 100, right: 20, 
+                        backgroundColor: showHiddenTags ? '#EF4444' : '#4B5563',
+                        padding: 10, borderRadius: 30, elevation: 5, flexDirection: 'row', alignItems: 'center'
+                    }}
+                >
+                    <Ionicons name={showHiddenTags ? "eye" : "eye-off"} size={20} color="white" />
+                    <Text style={{ color: 'white', marginLeft: 8, fontWeight: 'bold', fontSize: 12 }}>
+                        {showHiddenTags ? "Mode Admin: Tampilkan Semua Tag" : "Mode Admin: Sembunyikan Hidden Tag"}
+                    </Text>
+                </TouchableOpacity>
+            )}
             <AddTagModal
                 visible={addModalVisible}
                 onClose={() => {
@@ -447,6 +507,8 @@ function Home() {
                 }}
                 tagId={selectedTagId}
                 currentUserId={myId}
+                userRole={myRole}
+                onTagUpdated={loadAllTags}
             />
             <UserProfileModal
                 visible={profileModalVisible}

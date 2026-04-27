@@ -143,23 +143,33 @@ async function getTagRoad(_tagRoadId){
 async function getTagDetail(_tagId, _userId=null, _versionId=null){
     try{
         let targetVersionId = _versionId
+        const road = await tagRoads.findOne({ where: { id: _tagId } });
+        if(!road){
+            return{
+                status: 404,
+                data: null,
+                message: "Tag roads not found"
+            }
+        }
+
+        if (road.isHidden) {
+            if (!_userId) {
+                return { status: 404, data: null, message: "Tag roads not found" };
+            }
+            const checkUser = await user.findByPk(_userId, { attributes: ['role'] });
+            if (!checkUser || checkUser.role !== 'admin') {
+                return { status: 404, data: null, message: "Tag roads not found" };
+            }
+        }
 
         if(!targetVersionId){
-            const road = await tagRoads.findOne({ where: { id: _tagId, isHidden: false } });
-            if(!road){
-                return{
-                    status: 404,
-                    data: null,
-                    message: "Tag roads not found"
-                }
-            }
             targetVersionId = road.activeVersionId
         }
 
         const currVersion = { id: targetVersionId };
 
         const detail = await tagRoads.findOne({
-            where: {id: _tagId, isHidden: false},
+            where: {id: _tagId },
             include:[
                 {
                     model: tagVersions,
@@ -215,10 +225,33 @@ async function getTagDetail(_tagId, _userId=null, _versionId=null){
     }
 }
 
-async function getAllTags(){
+async function getAllTags(_userId=null, _includeHidden="false"){
     try{
+        if(_includeHidden !== "false"){
+            if(!_userId){
+                return{
+                    status: 401,
+                    message: "User not authorized"
+                }
+            }
+            const checkUser = await user.findByPk(_userId,{
+                attributes: ['role']
+            })
+            if(checkUser.role !== 'admin'){
+                return{
+                    status: 401,
+                    message: "User not authorized"
+                }
+            }
+        }
+        let whereCondition = {};
+        
+        if (_includeHidden === "false") {
+            whereCondition.isHidden = false;
+        }
+        
         const fetchTags = await tagRoads.findAll({
-            where: {isHidden: false}
+            where: whereCondition
         })
         return {
             data: fetchTags,
@@ -253,6 +286,11 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
                 score: 0,
                 isVerified: false
             }, {transaction: t})
+
+            await tagRoads.update(
+                { updatedAt: new Date() }, 
+                { where: { id: _tagRoadId }, transaction: t }
+            );
 
             let savedImages = []
             if(_images && _images.length > 0){
@@ -476,7 +514,7 @@ async function checkRecentUpdate(lat, lon, lastFetchTime){
     try{
         const fetchDate = new Date(lastFetchTime)
 
-        const offset = 0.45
+        const offset = 0.045 //5 km
         const minLat = parseFloat(lat) - offset;
         const maxLat = parseFloat(lat) + offset;
         const minLon = parseFloat(lon) - offset;
@@ -485,7 +523,7 @@ async function checkRecentUpdate(lat, lon, lastFetchTime){
         const updatesCount = await tagRoads.count({
             //hitung semua tag baru di radius
             where:{
-                updateAt: {[Op.gt]: fetchDate},
+                updatedAt: {[Op.gt]: fetchDate},
                 latitude: {[Op.between]: [minLat, maxLat]},
                 longitude: { [Op.between]: [minLon, maxLon] }
             }
