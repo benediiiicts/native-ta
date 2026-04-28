@@ -74,7 +74,7 @@ function AdminDashboard(){
                         <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuCard} onPress={() => {/* router.push('/admin/manage-reports') */}}>
+                    <TouchableOpacity style={styles.menuCard} onPress={() =>  router.push('/admin/manage-reports')}>
                         <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
                             <MaterialCommunityIcons name="flag-triangle" size={32} color="#EF4444" />
                         </View>

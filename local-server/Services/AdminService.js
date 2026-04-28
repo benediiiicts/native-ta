@@ -93,7 +93,7 @@ async function manageUserStatus(_userId, _action, _durationDays, _adminNotes){
             let notifType = "warning";
 
             if(_action == "suspend"){
-                const suspendDays = parseint(_durationDays) || 3
+                const suspendDays = parseInt(_durationDays) || 3
                 const endDate = new Date
                 endDate.setDate(endDate.getDate() + suspendDays)
 
@@ -248,7 +248,7 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
                 notifType = "success"
                 actionNote = "Telah disetujui"
             }
-            else if(_status = 'Rejected'){
+            else if(_status == 'Rejected'){
                 notifTitle = "Laporan anda ditolak!"
                 notifType = "danger"
                 actionNote = "Ditolak"
@@ -256,12 +256,12 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
 
             await targetReport.save({transaction: t})
 
-            const reportType = targetReport.targetType
-            if(reportType == 'User'){
+            let targetDescription = targetReport.targetType
+            if(targetDescription == 'User'){
                 const targetUser = await user.findByPk(targetReport.targetId)
-                reportType = `pengguna: ${targetUser.username}`
+                targetDescription = `pengguna: ${targetUser.username}`
             }
-            else if(reportType == 'Comment'){
+            else if(targetDescription == 'Comment'){
                 const targetComment = await comments.findByPk(targetReport.targetId, {
                     include:[{
                         model: user,
@@ -269,29 +269,33 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
                         attributes: ['id', 'username']
                     }]
                 })
-                reportType = `komentar pengguna: ${targetComment.commentAuthor.username}`
+                targetDescription = `komentar pengguna: ${targetComment?.commentAuthor?.username}`
             }
-            else if(reportType == 'TagVersion'){
+            else if(targetDescription == 'TagVersion'){
                 const targetTag = await tagVersions.findByPk(targetReport.targetId, {
-                    include: [{
-                        model: user,
-                        as: 'author',
-                        attributes: ['id', 'username']
-                    }],
-                    include: [{
-                        model: tagRoads,
-                        as: "road",
-                        attributes: ['issueType']
-                    }]
+                    include: [
+                        {
+                            model: user,
+                            as: 'author',
+                            attributes: ['id', 'username']
+                        },
+                        {
+                            model: tagRoads,
+                            as: "road",
+                            attributes: ['issueType']
+                        }
+                    ]
                 })
-                reportType = 
-                `laporan jalan mengenai: ${targetTag.road.issueType} 
-                dengan status ${targetTag.status}\n
-                yang dibuat oleh ${targetTag.author.username}`
+                const roadLocation = _roadName ? ` di ${_roadName}` : '';
+                
+                targetDescription = 
+                `laporan jalan mengenai: ${targetTag?.road?.issueType || 'Tidak Diketahui'} ${roadLocation} 
+                 dengan status ${targetTag?.status || '-'}\n
+                yang dibuat oleh ${targetTag?.author?.username || 'Anonymous'}`
             }
 
             const notes = `
-            Laporan anda mengenai ${reportType}\n
+            Laporan anda mengenai ${targetDescription}\n
             pada: ${targetReport.createdAt}\n
             alasan: ${targetReport.reason}\n
             keterangan: ${targetReport.description}\n
