@@ -46,7 +46,7 @@ function Home() {
     const router = useRouter()
     const tokenKey = 'userToken';
 
-    const [isLogedIn, setisLogedIn] = useState(false)
+    const [isLogedIn, setIsLogedIn] = useState(false)
     const [myId, setMyId] = useState<number | null>(null);
     const [myRole, setMyRole] = useState<string | null>(null)
 
@@ -102,7 +102,7 @@ function Home() {
             const token = await getStorageValue(tokenKey)
             if(token){
                 const decoded: DecodedToken = jwtDecode(token)
-                setisLogedIn(true)
+                setIsLogedIn(true)
                 setMyId(decoded.id)
                 setMyRole(decoded.role)
             }
@@ -186,7 +186,7 @@ function Home() {
         else{
             await SecureStore.deleteItemAsync(tokenKey)
         }
-        setisLogedIn(false)
+        setIsLogedIn(false)
         setConfirmLogoutVisible(false)
     }
 
@@ -465,7 +465,7 @@ function Home() {
             </View>
 
             {/* Jika admin, tunjukkan tombol show hidden tags */}
-            {myRole === 'admin' && !isSelectingLocation && (
+            {myRole === 'admin' && isLogedIn && !isSelectingLocation && (
                 <TouchableOpacity 
                     onPress={() => setShowHiddenTags(!showHiddenTags)}
                     style={{
@@ -514,6 +514,7 @@ function Home() {
                 visible={profileModalVisible}
                 onClose={() => setProfileModalVisible(false)}
                 userId={selectedUserId}
+                isAdmin={myRole === 'admin'}
                 isOwnProfile={isViewingOwnProfile}
                 onProfileUpdated={loadAllTags}
                 onReportPress={(id, name) => {

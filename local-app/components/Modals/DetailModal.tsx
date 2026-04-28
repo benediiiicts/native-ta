@@ -841,6 +841,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                 visible={profileModalVisible}
                 onClose={() => setProfileModalVisible(false)}
                 userId={selectedUserId}
+                isAdmin={userRole === 'admin'}
                 isOwnProfile={selectedUserId === currentUserId} 
                 onProfileUpdated={() => fetchTagDetail()}
                 onReportPress={(id, name) => {
