@@ -49,7 +49,11 @@ const styles = StyleSheet.create({
     actionBtnText: { color: 'white', fontSize: 14, fontWeight: 'bold' },
     btnViewContent: { backgroundColor: '#4B5563' }, // Abu-abu gelap
     btnResolve: { backgroundColor: '#10B981' }, // Hijau
-    btnReject: { backgroundColor: '#EF4444' } // Merah
+    btnReject: { backgroundColor: '#EF4444' }, // Merah
+
+    previewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+    closePreviewBtn: { position: 'absolute', top: 40, right: 20, zIndex: 10, padding: 10 },
+    fullImage: { width: '100%', height: '80%' }
 });
 
 export default styles

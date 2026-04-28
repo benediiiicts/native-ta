@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import UserProfileModal from '@/components/Modals/UserProfileModal';
 import DetailModal from '@/components/Modals/DetailModal';
 import WarningModal from "@/components/Modals/WarningModal";
+import UserManageModal from '@/components/Modals/UserManageModal';
 import styles from '@/styles/manage-reports.styles';
 
 const STATUS_FILTERS = ['Pending', 'Reviewed', 'Resolved', 'Rejected']
@@ -28,16 +29,22 @@ function ManageReports() {
     const router = useRouter();
     const tokenKey = 'userToken';
 
-    const [reports, setReports] = useState<any[]>([]);
-    const [statusFilter, setStatusFilter] = useState('Pending');
-    const [isLoading, setIsLoading] = useState(false);
+    const [reports, setReports] = useState<any[]>([])
+    const [statusFilter, setStatusFilter] = useState('Pending')
+    const [isLoading, setIsLoading] = useState(false)
 
-    const [selectedReport, setSelectedReport] = useState<any>(null);
-    const [reportDetailVisible, setReportDetailVisible] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<any>(null)
+    const [reportDetailVisible, setReportDetailVisible] = useState(false)
+    const [previewImage, setPreviewImage] = useState<string | null>(null)
 
     const [profileVisible, setProfileVisible] = useState(false);
+    const [profileUserId, setProfileUserId] = useState<number | null>(null); // Khusus untuk Profil
+    
     const [detailVisible, setDetailVisible] = useState(false);
-    const [selectedTargetId, setSelectedTargetId] = useState<number | null>(null);
+    const [selectedTargetId, setSelectedTargetId] = useState<number | null>(null); // Khusus untuk Tag/Comment
+    
+    const [manageUserVisible, setManageUserVisible] = useState(false);
+    const [manageUserId, setManageUserId] = useState<number | null>(null);
 
     const [warning, setWarning] = useState({ visible: false, title: '', message: '' });
 
@@ -105,11 +112,16 @@ function ManageReports() {
     function handleViewContent() {
         if (!selectedReport) return;
         
-        setSelectedTargetId(selectedReport.targetId);
         if (selectedReport.targetType === 'User') {
+            setProfileUserId(selectedReport.targetId); 
             setProfileVisible(true)
         } else {
-            setDetailVisible(true)
+            if (selectedReport.tagRoadId) {
+                setSelectedTargetId(selectedReport.tagRoadId);
+                setDetailVisible(true);
+            } else {
+                setWarning({ visible: true, title: "Error", message: "Konten asli (Laporan Jalan) tidak ditemukan atau sudah dihapus." });
+            }
         }
     }
 
@@ -128,13 +140,11 @@ function ManageReports() {
 
     return (
         <View style={styles.container}>
-            {/* Header Utama */}
             <View style={styles.topHeader}>
                 <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} /></TouchableOpacity>
                 <Text style={styles.title}>Manage Reports</Text>
             </View>
 
-            {/* Filter Status */}
             <View style={styles.filterContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {STATUS_FILTERS.map(f => (
@@ -149,7 +159,6 @@ function ManageReports() {
                 </ScrollView>
             </View>
 
-            {/* Daftar Laporan */}
             <FlatList
                 data={reports}
                 keyExtractor={(item) => item.id.toString()}
@@ -160,7 +169,6 @@ function ManageReports() {
             <Modal visible={reportDetailVisible} animationType="slide" transparent={false}>
                 {selectedReport && (
                     <View style={styles.modalContainer}>
-                        {/* Modal Header */}
                         <View style={styles.modalHeader}>
                             <TouchableOpacity onPress={() => setReportDetailVisible(false)} style={styles.modalBackBtn}>
                                 <Ionicons name="arrow-back" size={24} color="#374151" />
@@ -171,10 +179,16 @@ function ManageReports() {
                         <ScrollView style={styles.modalContent}>
                             <View style={styles.topSection}>
                                 <View style={styles.infoSection}>
-                                    <View style={styles.infoRow}>
+                                    <TouchableOpacity 
+                                        style={styles.infoRow} 
+                                        onPress={()=>{
+                                            setProfileUserId(selectedReport.userId); // ID Si Pelapor
+                                            setProfileVisible(true);
+                                        }}
+                                    >
                                         <Text style={styles.infoLabel}>Reported by:</Text>
                                         <Text style={styles.infoValueHighlight}>{selectedReport.reporter?.username || 'Anonymous'}</Text>
-                                    </View>
+                                    </TouchableOpacity>
                                     <View style={styles.infoRow}>
                                         <Text style={styles.infoLabel}>Reported at:</Text>
                                         <Text style={styles.infoValue}>{new Date(selectedReport.createdAt).toLocaleDateString('id-ID')}</Text>
@@ -194,12 +208,16 @@ function ManageReports() {
                                     {selectedReport.imageUrls && selectedReport.imageUrls.length > 0 ? (
                                         <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.imageScroll}>
                                             {selectedReport.imageUrls.map((imgUrl: string, idx: number) => (
-                                                <Image 
-                                                    key={idx}
-                                                    source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}` }} 
-                                                    style={styles.evidenceImage}
-                                                    resizeMode="cover"
-                                                />
+                                                <TouchableOpacity 
+                                                    key={idx} 
+                                                    onPress={() => setPreviewImage(`${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}`)}
+                                                >
+                                                    <Image 
+                                                        source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}` }} 
+                                                        style={styles.evidenceImage}
+                                                        resizeMode="cover"
+                                                    />
+                                                </TouchableOpacity>
                                             ))}
                                         </ScrollView>
                                     ) : (
@@ -211,7 +229,6 @@ function ManageReports() {
                                 </View>
                             </View>
 
-                            {/* Bagian Deskripsi */}
                             <View style={styles.descriptionSection}>
                                 <Text style={styles.infoLabel}>Description:</Text>
                                 <View style={styles.descriptionBox}>
@@ -221,11 +238,27 @@ function ManageReports() {
                         </ScrollView>
 
                         <View style={styles.modalFooter}>
-                            <TouchableOpacity style={[styles.actionBtn, styles.btnViewContent]} onPress={handleViewContent}>
-                                <Ionicons name="open-outline" size={18} color="white" />
-                                <Text style={styles.actionBtnText}>Lihat Konten</Text>
-                            </TouchableOpacity>
+                            <View style={{flexDirection: 'row', gap: 10, marginBottom: selectedReport.status !== 'Resolved' && selectedReport.status !== 'Rejected' ? 10 : 0}}>
+                                <TouchableOpacity style={[styles.actionBtn, styles.btnViewContent]} onPress={handleViewContent}>
+                                    <Ionicons name="open-outline" size={18} color="white" />
+                                    <Text style={styles.actionBtnText}>Lihat Konten</Text>
+                                </TouchableOpacity>
 
+                                {selectedReport.targetType === 'User' && (
+                                    <TouchableOpacity 
+                                        style={[styles.actionBtn, { backgroundColor: '#F59E0B' }]} 
+                                        onPress={() => {
+                                            setManageUserId(selectedReport.targetId);
+                                            setManageUserVisible(true);
+                                        }}
+                                    >
+                                        <Ionicons name="build-outline" size={18} color="white" />
+                                        <Text style={styles.actionBtnText}>Moderasi Pengguna</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {/*Tombol Resolve / Reject */}
                             {selectedReport.status !== 'Resolved' && selectedReport.status !== 'Rejected' && (
                                 <View style={styles.resolveRejectRow}>
                                     <TouchableOpacity 
@@ -250,11 +283,10 @@ function ManageReports() {
                 )}
             </Modal>
 
-            {/* Modals Konten Eksternal */}
             <UserProfileModal
                 visible={profileVisible}
                 onClose={() => setProfileVisible(false)}
-                userId={selectedTargetId}
+                userId={profileUserId} 
                 isAdmin={true}
                 isOwnProfile={false}
                 onReportPress={() => {}}
@@ -267,6 +299,17 @@ function ManageReports() {
                 userRole="admin"
             />
 
+            <UserManageModal
+                visible={manageUserVisible}
+                onClose={() => setManageUserVisible(false)}
+                userId={manageUserId}
+                username={`User #${manageUserId}`} 
+                currentBanType={null} 
+                onActionSuccess={() => {
+                    setManageUserVisible(false);
+                }}
+            />
+
             <WarningModal
                 visible={warning.visible}
                 title={warning.title}
@@ -275,6 +318,17 @@ function ManageReports() {
                 onConfirm={() => setWarning({ ...warning, visible: false })}
                 onCancel={() => setWarning({ ...warning, visible: false })}
             />
+
+            <Modal visible={!!previewImage} transparent={true} animationType="fade">
+                <View style={styles.previewOverlay}>
+                    <TouchableOpacity style={styles.closePreviewBtn} onPress={() => setPreviewImage(null)}>
+                        <Ionicons name="close" size={32} color="white" />
+                    </TouchableOpacity>
+                    {previewImage && (
+                        <Image source={{ uri: previewImage }} style={styles.fullImage} resizeMode="contain" />
+                    )}
+                </View>
+            </Modal>
         </View>
     );
 }

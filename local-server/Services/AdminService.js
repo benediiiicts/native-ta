@@ -208,9 +208,27 @@ async function fetchAllReports(_statusFilter = 'Pending'){
             limit: 100
         })
 
+        const reportsWithRoad = await Promise.all(reportsList.map(async (reports) => {
+            const repData = reports.toJSON()
+
+            if(repData.targetType == 'TagVersion'){
+                const version = await tagVersions.findByPk(repData.targetId)
+                repData.tagRoadId = version? version.tagRoadId : null
+            }
+            else if(repData.targetType == 'Comment'){
+                const comment = await comments.findByPk(repData.targetId)
+                if(comment){
+                    const version = await tagVersions.findByPk(comment.tagVersionId)
+                    repData.tagRoadId = version ? version.tagRoadId : null
+                }
+            }
+
+            return repData
+        }))
+
         return {
             status: 200,
-            data: reportsList,
+            data: reportsWithRoad,
             message: "Reports successfully fetched"
         }
     }
