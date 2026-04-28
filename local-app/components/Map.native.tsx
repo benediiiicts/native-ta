@@ -247,7 +247,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                         }}
                         pinColor="blue"
                         title="Titik Pilihan"
-                        description={targetLocation.name || "Lokasi anda saat ini"}
+                        description={targetLocation.name || ''}
                     />
                 )}
                 

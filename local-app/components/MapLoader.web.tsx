@@ -116,7 +116,7 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                 >
                     <Popup>
                         <b>Titik Pilihan</b> <br />
-                        {targetLocation.name || "Titik yang akan dilaporkan"}
+                        {targetLocation.name || ""}
                     </Popup>
                 </Marker>
             )}
