@@ -10,6 +10,7 @@ interface UserProfileModalProps{
     onClose: () => void
     userId: number | null
     isOwnProfile: boolean
+    isAdmin: boolean
     onReportPress: (userId: number, username: string) => void
     onProfileUpdated?: () => void
 }
@@ -27,7 +28,7 @@ async function getStorageValue(key: string){
     }
 }
 
-function UserProfileModal({ visible, onClose, userId, isOwnProfile, onReportPress, onProfileUpdated }: UserProfileModalProps){
+function UserProfileModal({ visible, onClose, userId, isOwnProfile, isAdmin, onReportPress, onProfileUpdated }: UserProfileModalProps){
     const tokenKey = 'userToken'
 
     const [profileData, setProfileData] = useState<any>(null)
@@ -158,12 +159,12 @@ function UserProfileModal({ visible, onClose, userId, isOwnProfile, onReportPres
                                     <Ionicons name={isEditing ? "checkmark" : "create-outline"} size={20} color="white" />
                                     <Text style={styles.actionButtonText}>{isEditing ? "Simpan Perubahan" : "Edit Username"}</Text>
                                 </TouchableOpacity>
-                            ) : (
+                            ) : !isAdmin ? (
                                 <TouchableOpacity style={styles.reportButton} onPress={() => onReportPress?.(profileData.id, profileData.username)}>
                                     <MaterialIcons name="report-problem" size={20} color="#EF4444" />
                                     <Text style={styles.reportButtonText}>Laporkan Pengguna</Text>
                                 </TouchableOpacity>
-                            )}
+                            ) : null}
                         </>
                     )}
                 </View>

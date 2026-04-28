@@ -367,7 +367,10 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
 
     function renderDetails(){
         if (isLoading || !tagData) 
-            return <Text style={styles.loadingText}>Loading...</Text>;
+            return <Text style={styles.loadingText}>Loading...</Text>
+
+        if (!isLoading && !tagData) 
+            return <Text style={styles.loadingText}>Data tidak ditemukan atau sudah dihapus.</Text>
 
         const activeVersion = tagData.activeVersion
         const images = activeVersion?.images || [];
@@ -841,6 +844,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                 visible={profileModalVisible}
                 onClose={() => setProfileModalVisible(false)}
                 userId={selectedUserId}
+                isAdmin={userRole === 'admin'}
                 isOwnProfile={selectedUserId === currentUserId} 
                 onProfileUpdated={() => fetchTagDetail()}
                 onReportPress={(id, name) => {
