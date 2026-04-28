@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Platform, Modal, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
 import UserProfileModal from '@/components/Modals/UserProfileModal';
 import DetailModal from '@/components/Modals/DetailModal';
 import WarningModal from "@/components/Modals/WarningModal";
 import UserManageModal from '@/components/Modals/UserManageModal';
+import NotFoundPage from '@/components/NotFoundPage';
 import styles from '@/styles/manage-reports.styles';
+
+interface DecodedToken extends JwtPayload {
+    id: number;
+    email: string;
+    role: string;
+}
 
 const STATUS_FILTERS = ['Pending', 'Reviewed', 'Resolved', 'Rejected']
 
@@ -24,10 +32,12 @@ async function getStorageValue(key: string){
     }
 }
 
-
 function ManageReports() {
     const router = useRouter();
     const tokenKey = 'userToken';
+
+    const [isLogedIn, setIsLogedIn] = useState(false)
+    const [myRole, setMyRole] = useState<string | null>(null)
 
     const [reports, setReports] = useState<any[]>([])
     const [statusFilter, setStatusFilter] = useState('Pending')
@@ -51,6 +61,18 @@ function ManageReports() {
     useEffect(() => {
         fetchReports();
     }, [statusFilter]);
+
+    useEffect(()=>{
+        async function checkLogin(){
+            const token = await getStorageValue(tokenKey)
+            if(token){
+                const decoded: DecodedToken = jwtDecode(token)
+                setIsLogedIn(true)
+                setMyRole(decoded.role)
+            }
+        }
+        checkLogin()
+    }, [])
 
     async function fetchReports() {
         setIsLoading(true);
@@ -138,199 +160,208 @@ function ManageReports() {
         </TouchableOpacity>
     );
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.topHeader}>
-                <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} /></TouchableOpacity>
-                <Text style={styles.title}>Manage Reports</Text>
-            </View>
+    if(isLogedIn && myRole == 'admin'){
+        return renderManageReport()
+    }
+    else{
+        return ( <NotFoundPage/> )
+    }
 
-            <View style={styles.filterContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {STATUS_FILTERS.map(f => (
-                        <TouchableOpacity
-                            key={f}
-                            style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
-                            onPress={() => setStatusFilter(f)}
-                        >
-                            <Text style={[styles.filterText, statusFilter === f && styles.filterTextActive]}>{f}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
+    function renderManageReport(){
+        return (
+            <View style={styles.container}>
+                <View style={styles.topHeader}>
+                    <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} /></TouchableOpacity>
+                    <Text style={styles.title}>Manage Reports</Text>
+                </View>
 
-            <FlatList
-                data={reports}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                ListEmptyComponent={<Text style={styles.empty}>Tidak ada laporan {statusFilter.toLowerCase()}</Text>}
-            />
-
-            <Modal visible={reportDetailVisible} animationType="slide" transparent={false}>
-                {selectedReport && (
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setReportDetailVisible(false)} style={styles.modalBackBtn}>
-                                <Ionicons name="arrow-back" size={24} color="#374151" />
+                <View style={styles.filterContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {STATUS_FILTERS.map(f => (
+                            <TouchableOpacity
+                                key={f}
+                                style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
+                                onPress={() => setStatusFilter(f)}
+                            >
+                                <Text style={[styles.filterText, statusFilter === f && styles.filterTextActive]}>{f}</Text>
                             </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Detail Laporan</Text>
-                        </View>
+                        ))}
+                    </ScrollView>
+                </View>
 
-                        <ScrollView style={styles.modalContent}>
-                            <View style={styles.topSection}>
-                                <View style={styles.infoSection}>
-                                    <TouchableOpacity 
-                                        style={styles.infoRow} 
-                                        onPress={()=>{
-                                            setProfileUserId(selectedReport.userId); // ID Si Pelapor
-                                            setProfileVisible(true);
-                                        }}
-                                    >
-                                        <Text style={styles.infoLabel}>Reported by:</Text>
-                                        <Text style={styles.infoValueHighlight}>{selectedReport.reporter?.username || 'Anonymous'}</Text>
-                                    </TouchableOpacity>
-                                    <View style={styles.infoRow}>
-                                        <Text style={styles.infoLabel}>Reported at:</Text>
-                                        <Text style={styles.infoValue}>{new Date(selectedReport.createdAt).toLocaleDateString('id-ID')}</Text>
+                <FlatList
+                    data={reports}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    ListEmptyComponent={<Text style={styles.empty}>Tidak ada laporan {statusFilter.toLowerCase()}</Text>}
+                />
+
+                <Modal visible={reportDetailVisible} animationType="slide" transparent={false}>
+                    {selectedReport && (
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setReportDetailVisible(false)} style={styles.modalBackBtn}>
+                                    <Ionicons name="arrow-back" size={24} color="#374151" />
+                                </TouchableOpacity>
+                                <Text style={styles.modalTitle}>Detail Laporan</Text>
+                            </View>
+
+                            <ScrollView style={styles.modalContent}>
+                                <View style={styles.topSection}>
+                                    <View style={styles.infoSection}>
+                                        <TouchableOpacity 
+                                            style={styles.infoRow} 
+                                            onPress={()=>{
+                                                setProfileUserId(selectedReport.userId); // ID Si Pelapor
+                                                setProfileVisible(true);
+                                            }}
+                                        >
+                                            <Text style={styles.infoLabel}>Reported by:</Text>
+                                            <Text style={styles.infoValueHighlight}>{selectedReport.reporter?.username || 'Anonymous'}</Text>
+                                        </TouchableOpacity>
+                                        <View style={styles.infoRow}>
+                                            <Text style={styles.infoLabel}>Reported at:</Text>
+                                            <Text style={styles.infoValue}>{new Date(selectedReport.createdAt).toLocaleDateString('id-ID')}</Text>
+                                        </View>
+                                        <View style={styles.infoRow}>
+                                            <Text style={styles.infoLabel}>Report type:</Text>
+                                            <Text style={styles.infoValue}>{selectedReport.targetType}</Text>
+                                        </View>
+                                        <View style={styles.infoRow}>
+                                            <Text style={styles.infoLabel}>Cause:</Text>
+                                            <Text style={styles.infoValue}>{selectedReport.reason}</Text>
+                                        </View>
                                     </View>
-                                    <View style={styles.infoRow}>
-                                        <Text style={styles.infoLabel}>Report type:</Text>
-                                        <Text style={styles.infoValue}>{selectedReport.targetType}</Text>
-                                    </View>
-                                    <View style={styles.infoRow}>
-                                        <Text style={styles.infoLabel}>Cause:</Text>
-                                        <Text style={styles.infoValue}>{selectedReport.reason}</Text>
+
+                                    <View style={styles.evidenceSection}>
+                                        <Text style={styles.infoLabel}>Evidence:</Text>
+                                        {selectedReport.imageUrls && selectedReport.imageUrls.length > 0 ? (
+                                            <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.imageScroll}>
+                                                {selectedReport.imageUrls.map((imgUrl: string, idx: number) => (
+                                                    <TouchableOpacity 
+                                                        key={idx} 
+                                                        onPress={() => setPreviewImage(`${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}`)}
+                                                    >
+                                                        <Image 
+                                                            source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}` }} 
+                                                            style={styles.evidenceImage}
+                                                            resizeMode="cover"
+                                                        />
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        ) : (
+                                            <View style={styles.noEvidenceBox}>
+                                                <Ionicons name="image-outline" size={32} color="#9CA3AF" />
+                                                <Text style={styles.noEvidenceText}>Tidak ada bukti gambar</Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
 
-                                <View style={styles.evidenceSection}>
-                                    <Text style={styles.infoLabel}>Evidence:</Text>
-                                    {selectedReport.imageUrls && selectedReport.imageUrls.length > 0 ? (
-                                        <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.imageScroll}>
-                                            {selectedReport.imageUrls.map((imgUrl: string, idx: number) => (
-                                                <TouchableOpacity 
-                                                    key={idx} 
-                                                    onPress={() => setPreviewImage(`${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}`)}
-                                                >
-                                                    <Image 
-                                                        source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${imgUrl}` }} 
-                                                        style={styles.evidenceImage}
-                                                        resizeMode="cover"
-                                                    />
-                                                </TouchableOpacity>
-                                            ))}
-                                        </ScrollView>
-                                    ) : (
-                                        <View style={styles.noEvidenceBox}>
-                                            <Ionicons name="image-outline" size={32} color="#9CA3AF" />
-                                            <Text style={styles.noEvidenceText}>Tidak ada bukti gambar</Text>
-                                        </View>
+                                <View style={styles.descriptionSection}>
+                                    <Text style={styles.infoLabel}>Description:</Text>
+                                    <View style={styles.descriptionBox}>
+                                        <Text style={styles.descriptionText}>{selectedReport.description || 'Tidak ada deskripsi tambahan.'}</Text>
+                                    </View>
+                                </View>
+                            </ScrollView>
+
+                            <View style={styles.modalFooter}>
+                                <View style={{flexDirection: 'row', gap: 10, marginBottom: selectedReport.status !== 'Resolved' && selectedReport.status !== 'Rejected' ? 10 : 0}}>
+                                    <TouchableOpacity style={[styles.actionBtn, styles.btnViewContent]} onPress={handleViewContent}>
+                                        <Ionicons name="open-outline" size={18} color="white" />
+                                        <Text style={styles.actionBtnText}>Lihat Konten</Text>
+                                    </TouchableOpacity>
+
+                                    {selectedReport.targetType === 'User' && (
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, { backgroundColor: '#F59E0B' }]} 
+                                            onPress={() => {
+                                                setManageUserId(selectedReport.targetId);
+                                                setManageUserVisible(true);
+                                            }}
+                                        >
+                                            <Ionicons name="build-outline" size={18} color="white" />
+                                            <Text style={styles.actionBtnText}>Moderasi Pengguna</Text>
+                                        </TouchableOpacity>
                                     )}
                                 </View>
-                            </View>
 
-                            <View style={styles.descriptionSection}>
-                                <Text style={styles.infoLabel}>Description:</Text>
-                                <View style={styles.descriptionBox}>
-                                    <Text style={styles.descriptionText}>{selectedReport.description || 'Tidak ada deskripsi tambahan.'}</Text>
-                                </View>
-                            </View>
-                        </ScrollView>
+                                {/*Tombol Resolve / Reject */}
+                                {selectedReport.status !== 'Resolved' && selectedReport.status !== 'Rejected' && (
+                                    <View style={styles.resolveRejectRow}>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, styles.btnResolve]} 
+                                            onPress={() => handleUpdateStatus(selectedReport.id, 'Resolved', 'Laporan telah ditindaklanjuti.')}
+                                        >
+                                            <Ionicons name="checkmark-circle-outline" size={18} color="white" />
+                                            <Text style={styles.actionBtnText}>Selesai (Resolve)</Text>
+                                        </TouchableOpacity>
 
-                        <View style={styles.modalFooter}>
-                            <View style={{flexDirection: 'row', gap: 10, marginBottom: selectedReport.status !== 'Resolved' && selectedReport.status !== 'Rejected' ? 10 : 0}}>
-                                <TouchableOpacity style={[styles.actionBtn, styles.btnViewContent]} onPress={handleViewContent}>
-                                    <Ionicons name="open-outline" size={18} color="white" />
-                                    <Text style={styles.actionBtnText}>Lihat Konten</Text>
-                                </TouchableOpacity>
-
-                                {selectedReport.targetType === 'User' && (
-                                    <TouchableOpacity 
-                                        style={[styles.actionBtn, { backgroundColor: '#F59E0B' }]} 
-                                        onPress={() => {
-                                            setManageUserId(selectedReport.targetId);
-                                            setManageUserVisible(true);
-                                        }}
-                                    >
-                                        <Ionicons name="build-outline" size={18} color="white" />
-                                        <Text style={styles.actionBtnText}>Moderasi Pengguna</Text>
-                                    </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.actionBtn, styles.btnReject]} 
+                                            onPress={() => handleUpdateStatus(selectedReport.id, 'Rejected', 'Laporan ditolak karena tidak valid.')}
+                                        >
+                                            <Ionicons name="close-circle-outline" size={18} color="white" />
+                                            <Text style={styles.actionBtnText}>Tolak (Reject)</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
                             </View>
-
-                            {/*Tombol Resolve / Reject */}
-                            {selectedReport.status !== 'Resolved' && selectedReport.status !== 'Rejected' && (
-                                <View style={styles.resolveRejectRow}>
-                                    <TouchableOpacity 
-                                        style={[styles.actionBtn, styles.btnResolve]} 
-                                        onPress={() => handleUpdateStatus(selectedReport.id, 'Resolved', 'Laporan telah ditindaklanjuti.')}
-                                    >
-                                        <Ionicons name="checkmark-circle-outline" size={18} color="white" />
-                                        <Text style={styles.actionBtnText}>Selesai (Resolve)</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity 
-                                        style={[styles.actionBtn, styles.btnReject]} 
-                                        onPress={() => handleUpdateStatus(selectedReport.id, 'Rejected', 'Laporan ditolak karena tidak valid.')}
-                                    >
-                                        <Ionicons name="close-circle-outline" size={18} color="white" />
-                                        <Text style={styles.actionBtnText}>Tolak (Reject)</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
                         </View>
-                    </View>
-                )}
-            </Modal>
-
-            <UserProfileModal
-                visible={profileVisible}
-                onClose={() => setProfileVisible(false)}
-                userId={profileUserId} 
-                isAdmin={true}
-                isOwnProfile={false}
-                onReportPress={() => {}}
-            />
-
-            <DetailModal
-                visible={detailVisible}
-                onClose={() => setDetailVisible(false)}
-                tagId={selectedTargetId}
-                userRole="admin"
-            />
-
-            <UserManageModal
-                visible={manageUserVisible}
-                onClose={() => setManageUserVisible(false)}
-                userId={manageUserId}
-                username={`User #${manageUserId}`} 
-                currentBanType={null} 
-                onActionSuccess={() => {
-                    setManageUserVisible(false);
-                }}
-            />
-
-            <WarningModal
-                visible={warning.visible}
-                title={warning.title}
-                message={warning.message}
-                confirmText="OK"
-                onConfirm={() => setWarning({ ...warning, visible: false })}
-                onCancel={() => setWarning({ ...warning, visible: false })}
-            />
-
-            <Modal visible={!!previewImage} transparent={true} animationType="fade">
-                <View style={styles.previewOverlay}>
-                    <TouchableOpacity style={styles.closePreviewBtn} onPress={() => setPreviewImage(null)}>
-                        <Ionicons name="close" size={32} color="white" />
-                    </TouchableOpacity>
-                    {previewImage && (
-                        <Image source={{ uri: previewImage }} style={styles.fullImage} resizeMode="contain" />
                     )}
-                </View>
-            </Modal>
-        </View>
-    );
+                </Modal>
+
+                <UserProfileModal
+                    visible={profileVisible}
+                    onClose={() => setProfileVisible(false)}
+                    userId={profileUserId} 
+                    isAdmin={myRole == 'admin'}
+                    isOwnProfile={false}
+                    onReportPress={() => {}}
+                />
+
+                <DetailModal
+                    visible={detailVisible}
+                    onClose={() => setDetailVisible(false)}
+                    tagId={selectedTargetId}
+                    userRole="admin"
+                />
+
+                <UserManageModal
+                    visible={manageUserVisible}
+                    onClose={() => setManageUserVisible(false)}
+                    userId={manageUserId}
+                    username={`User #${manageUserId}`} 
+                    currentBanType={null} 
+                    onActionSuccess={() => {
+                        setManageUserVisible(false);
+                    }}
+                />
+
+                <WarningModal
+                    visible={warning.visible}
+                    title={warning.title}
+                    message={warning.message}
+                    confirmText="OK"
+                    onConfirm={() => setWarning({ ...warning, visible: false })}
+                    onCancel={() => setWarning({ ...warning, visible: false })}
+                />
+
+                <Modal visible={!!previewImage} transparent={true} animationType="fade">
+                    <View style={styles.previewOverlay}>
+                        <TouchableOpacity style={styles.closePreviewBtn} onPress={() => setPreviewImage(null)}>
+                            <Ionicons name="close" size={32} color="white" />
+                        </TouchableOpacity>
+                        {previewImage && (
+                            <Image source={{ uri: previewImage }} style={styles.fullImage} resizeMode="contain" />
+                        )}
+                    </View>
+                </Modal>
+            </View>
+        );
+    }
 }
 
 export default ManageReports
