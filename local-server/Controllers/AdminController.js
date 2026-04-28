@@ -1,4 +1,4 @@
-import { manageTags, manageUserStatus, fetchAllUsers } from "../Services/AdminService.js";
+import { manageTags, manageUserStatus, fetchAllUsers, fetchAllReports, manageReportStatus } from "../Services/AdminService.js";
 
 async function manageTagAdmin(req, res){
     try{
@@ -72,8 +72,56 @@ async function getUsersAdmin(req, res){
     }
 }
 
+async function getReportsAdmin(req, res){
+    try{
+        const userId = req.user.id
+        const userRole = req.user.role
+
+        if(userRole !== 'admin' || !userId){
+            return res.status(403).json({
+                message: "Unauthorized user, feature forbidden"
+            })
+        }
+
+        const statusFilter = req.query.status || 'Pending'
+        const result = await fetchAllReports(statusFilter)
+
+        return res.status(result.status).json(result)
+    }
+    catch(error){
+        console.error(`Error while fetching reports: ${error}`)
+        return res.status(500).json({
+            message: "Server error while fetching reports"
+        })
+    }
+}
+
+async function manageReportAdmin(req, res){
+    try{
+        const userId = req.user.id
+        const userRole = req.user.role
+
+        if(userRole !== 'admin' || !userId){
+            return res.status(403).json({
+                message: "Unauthorized user, feature forbidden"
+            })
+        }
+        const reportId = req.params.id;
+        const { status, adminNotes, roadName } = req.body;
+
+        const result = await manageReportStatus(reportId, status, adminNotes, roadName);
+
+        return res.status(result.status).json(result);
+    } catch (error) {
+        console.error(`Error manageReportStatusAdmin: ${error}`);
+        return res.status(500).json({ message: "Server error" });
+    }
+}
+
 export {
     manageTagAdmin,
     manageUserAdmin,
-    getUsersAdmin
+    getUsersAdmin,
+    getReportsAdmin,
+    manageReportAdmin
 }
