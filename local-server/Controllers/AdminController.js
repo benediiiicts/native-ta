@@ -129,7 +129,17 @@ async function getStatisticAdmin(req, res){
             })
         }
 
-        const result = await fetchStatistic()
+        let bbox = null;
+        if (req.query.minLat && req.query.maxLat && req.query.minLon && req.query.maxLon) {
+            bbox = {
+                minLat: req.query.minLat,
+                maxLat: req.query.maxLat,
+                minLon: req.query.minLon,
+                maxLon: req.query.maxLon
+            };
+        }
+
+        const result = await fetchStatistic(bbox)
         return res.status(result.status).json(result)
     }
     catch(error){

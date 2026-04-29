@@ -345,37 +345,52 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
     }
 }
 
-async function fetchStatistic(){
+async function fetchStatistic(_bbox=null){
     try{
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-        const dateFilter = {
+        const versionFilter = {
+            isHidden: false,
             createdAt: { [Op.gte]: ninetyDaysAgo }
+        };
+
+        const roadFilter = {
+            isHidden: false,
+            createdAt: { [Op.gte]: ninetyDaysAgo }
+        };
+
+        if (_bbox && _bbox.minLat && _bbox.maxLat && _bbox.minLon && _bbox.maxLon) {
+            roadFilter.latitude = { [Op.between]: [parseFloat(_bbox.minLat), parseFloat(_bbox.maxLat)] };
+            roadFilter.longitude = { [Op.between]: [parseFloat(_bbox.minLon), parseFloat(_bbox.maxLon)] };
         }
 
-        const totalRoads = await tagRoads.count({ 
-            where: { isHidden: false, ...dateFilter } 
+        const totalRoads = await tagRoads.count({ where: roadFilter });
+
+        const totalVersions = await tagVersions.count({
+            include: [{
+                model: tagRoads,
+                as: 'road',
+                where: roadFilter, 
+                attributes: []
+            }],
+            where: versionFilter
         });
 
-        const totalVersions = await tagVersions.count({ 
-            where: { isHidden: false, ...dateFilter } 
-        });
-
-        //data untuk tag roads
+        // data berdasarkan kategori kerusakan/tag roads
         const issueStatsRaw = await tagRoads.findAll({
             attributes: ['issueType', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
-            where: { isHidden: false, ...dateFilter },
+            where: roadFilter,
             group: ['issueType']
         });
 
+        // data berdasarkan status/tag version  
         const allActiveRoads = await tagRoads.findAll({
-            where: { isHidden: false, ...dateFilter },
+            where: roadFilter,
             attributes: ['activeVersionId']
         });
         const activeVersionIds = allActiveRoads.map(r => r.activeVersionId).filter(id => id !== null);
-        
-        //data untuk tag version        
+
         let statusStatsRaw = [];
         if (activeVersionIds.length > 0) {
             statusStatsRaw = await tagVersions.findAll({
@@ -386,26 +401,26 @@ async function fetchStatistic(){
                 group: ['status']
             });
         }
-
-        const mapData = await tagRoads.findAll({
-            where: { isHidden: false, ...dateFilter },
-            attributes: ['id', 'latitude', 'longitude', 'issueType']
-        });
         
-        return{
+        return {
             status: 200,
             data: {
-                summary: {
-                    totalPoints: totalRoads,       
-                    totalReports: totalVersions,   
-                    period: "90 Hari Terakhir"
+                // statistik aktivitas user
+                // jumlah versi
+                engagementStats: {
+                    totalNewReports: totalVersions,
+                    period: "3 Bulan Terakhir"
                 },
-                byCategory: issueStatsRaw,
-                byStatus: statusStatsRaw,
-                mapData: mapData
+                // statistik laporan kerusakan jalan
+                // jumlah tag roads, berdasarkan jenis kerusakan yang dilaporkan
+                infrastructureStats: {
+                    totalDamagePoints: totalRoads,
+                    byCategory: issueStatsRaw,
+                    byStatus: statusStatsRaw 
+                }
             },
             message: "Statistics fetched successfully"
-        }
+        };
     }
     catch(error){
         console.error(`Error fetching statistics: ${error}`);

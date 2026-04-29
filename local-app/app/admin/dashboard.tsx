@@ -85,7 +85,7 @@ function AdminDashboard(){
                         <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuCard} onPress={() => {/* router.push('/admin/statistics') */}}>
+                    <TouchableOpacity style={styles.menuCard} onPress={() => router.push('/admin/statistics')}>
                         <View style={[styles.iconContainer, { backgroundColor: '#D1FAE5' }]}>
                             <Ionicons name="stats-chart" size={32} color="#10B981" />
                         </View>
