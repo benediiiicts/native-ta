@@ -276,8 +276,8 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
 
             let targetDescription = targetReport.targetType
             if(targetDescription == 'User'){
-                const targetUser = await user.findByPk(targetReport.targetId)
-                targetDescription = `pengguna: ${targetUser.username}`
+                const targetUser = await user.findByPk(targetReport.targetId, {transaction: t})
+                targetDescription = `pengguna: ${targetUser?.username || 'Akun Dihapus'}`
             }
             else if(targetDescription == 'Comment'){
                 const targetComment = await comments.findByPk(targetReport.targetId, {
@@ -285,9 +285,10 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
                         model: user,
                         as: "commentAuthor",
                         attributes: ['id', 'username']
-                    }]
+                    }],
+                    transaction: t
                 })
-                targetDescription = `komentar pengguna: ${targetComment?.commentAuthor?.username}`
+                targetDescription = `komentar pengguna: ${targetComment?.commentAuthor?.username || 'Akun Dihapus'}`
             }
             else if(targetDescription == 'TagVersion'){
                 const targetTag = await tagVersions.findByPk(targetReport.targetId, {
@@ -302,7 +303,8 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
                             as: "road",
                             attributes: ['issueType']
                         }
-                    ]
+                    ],
+                    transaction: t
                 })
                 const roadLocation = _roadName ? ` di ${_roadName}` : '';
                 
@@ -343,10 +345,82 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
     }
 }
 
+async function fetchStatistic(){
+    try{
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        const dateFilter = {
+            createdAt: { [Op.gte]: ninetyDaysAgo }
+        }
+
+        const totalRoads = await tagRoads.count({ 
+            where: { isHidden: false, ...dateFilter } 
+        });
+
+        const totalVersions = await tagVersions.count({ 
+            where: { isHidden: false, ...dateFilter } 
+        });
+
+        //data untuk tag roads
+        const issueStatsRaw = await tagRoads.findAll({
+            attributes: ['issueType', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+            where: { isHidden: false, ...dateFilter },
+            group: ['issueType']
+        });
+
+        const allActiveRoads = await tagRoads.findAll({
+            where: { isHidden: false, ...dateFilter },
+            attributes: ['activeVersionId']
+        });
+        const activeVersionIds = allActiveRoads.map(r => r.activeVersionId).filter(id => id !== null);
+        
+        //data untuk tag version        
+        let statusStatsRaw = [];
+        if (activeVersionIds.length > 0) {
+            statusStatsRaw = await tagVersions.findAll({
+                attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+                where: { 
+                    id: { [Op.in]: activeVersionIds }
+                },
+                group: ['status']
+            });
+        }
+
+        const mapData = await tagRoads.findAll({
+            where: { isHidden: false, ...dateFilter },
+            attributes: ['id', 'latitude', 'longitude', 'issueType']
+        });
+        
+        return{
+            status: 200,
+            data: {
+                summary: {
+                    totalPoints: totalRoads,       
+                    totalReports: totalVersions,   
+                    period: "90 Hari Terakhir"
+                },
+                byCategory: issueStatsRaw,
+                byStatus: statusStatsRaw,
+                mapData: mapData
+            },
+            message: "Statistics fetched successfully"
+        }
+    }
+    catch(error){
+        console.error(`Error fetching statistics: ${error}`);
+        return {
+            status: 500,
+            message: "Internal server error while fetching statistics"
+        };
+    }
+}
+
 export {
     manageTags,
     manageUserStatus,
     fetchAllUsers,
     fetchAllReports,
-    manageReportStatus
+    manageReportStatus,
+    fetchStatistic
 }

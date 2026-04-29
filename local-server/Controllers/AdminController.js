@@ -1,4 +1,4 @@
-import { manageTags, manageUserStatus, fetchAllUsers, fetchAllReports, manageReportStatus } from "../Services/AdminService.js";
+import { manageTags, manageUserStatus, fetchAllUsers, fetchAllReports, manageReportStatus, fetchStatistic } from "../Services/AdminService.js";
 
 async function manageTagAdmin(req, res){
     try{
@@ -118,10 +118,33 @@ async function manageReportAdmin(req, res){
     }
 }
 
+async function getStatisticAdmin(req, res){
+    try{
+        const userId = req.user.id
+        const userRole = req.user.role
+
+        if(userRole !== 'admin' || !userId){
+            return res.status(403).json({
+                message: "Unauthorized user, feature forbidden"
+            })
+        }
+
+        const result = await fetchStatistic()
+        return res.status(result.status).json(result)
+    }
+    catch(error){
+        console.error(`Error while fetching statistic: ${error}`)
+        return res.status(500).json({
+            message: "Internal server error while fetching statistic"
+        })
+    }
+}
+
 export {
     manageTagAdmin,
     manageUserAdmin,
     getUsersAdmin,
     getReportsAdmin,
-    manageReportAdmin
+    manageReportAdmin,
+    getStatisticAdmin
 }
