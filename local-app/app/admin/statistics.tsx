@@ -4,7 +4,7 @@ import NotFoundPage from '@/components/NotFoundPage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { JwtPayload } from 'jwt-decode';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
 import React, { useEffect, useState } from 'react';
 import { Modal, FlatList, ActivityIndicator, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -31,6 +31,9 @@ function AdminStatistics(){
     const router = useRouter()
     const tokenKey = 'userToken'
 
+    const [myRole, setMyRole] = useState<string | null>(null)
+    const [isLogedIn, setIsLogedIn] = useState(false)
+
     const [isLoading, setIsLoading] = useState(false)
     const [statsData, setStatsData] = useState<any>(null)
 
@@ -48,6 +51,18 @@ function AdminStatistics(){
     useEffect(()=>{
         fetchStats()
         fetchProvinces()
+    }, [])
+
+    useEffect(()=>{
+        async function checkLogin(){
+            const token = await getStorageValue(tokenKey)
+            if(token){
+                const decoded: DecodedToken = jwtDecode(token)
+                setIsLogedIn(true)
+                setMyRole(decoded.role)
+            }
+        }
+        checkLogin()
     }, [])
 
     //fetch provinsi dan kota dengan API dari 'emsifa'
@@ -203,108 +218,113 @@ function AdminStatistics(){
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.topHeader}>
-                <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color="#1F2937" /></TouchableOpacity>
-                <Text style={styles.title}>Statistik Laporan</Text>
-            </View>
+        <>
+            {isLogedIn && myRole == 'admin' ? (
+                <View style={styles.container}>
+                    <View style={styles.topHeader}>
+                        <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color="#1F2937" /></TouchableOpacity>
+                        <Text style={styles.title}>Statistik Laporan</Text>
+                    </View>
 
-            <View style={styles.searchSection}>
-                <Text style={styles.sectionLabel}>Filter Daerah:</Text>
-                <View style={styles.dropdownRow}>
-                    <TouchableOpacity style={styles.dropdownBtn} onPress={()=>{ setDropdownMode('province'); setDropdownVisible(true); }}>
-                        <Text style={styles.dropdownText} numberOfLines={1}>{selectedProvince ? selectedProvince.name : "Pilih Provinsi..."}</Text>
-                        <Ionicons name="chevron-down" size={16} color="#6B7280" />
-                    </TouchableOpacity>
+                    <View style={styles.searchSection}>
+                        <Text style={styles.sectionLabel}>Filter Daerah:</Text>
+                        <View style={styles.dropdownRow}>
+                            <TouchableOpacity style={styles.dropdownBtn} onPress={()=>{ setDropdownMode('province'); setDropdownVisible(true); }}>
+                                <Text style={styles.dropdownText} numberOfLines={1}>{selectedProvince ? selectedProvince.name : "Pilih Provinsi..."}</Text>
+                                <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                            </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        style={[styles.dropdownBtn, !selectedProvince && {opacity: 0.5}]} 
-                        disabled={!selectedProvince}
-                        onPress={()=>{ setDropdownMode('city'); setDropdownVisible(true); }}
-                    >
-                        <Text style={styles.dropdownText} numberOfLines={1}>{selectedCity ? selectedCity.name : "Pilih Kota/Kab..."}</Text>
-                        <Ionicons name="chevron-down" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.searchBtnRow}>
-                    <TouchableOpacity style={styles.searchBtn} onPress={handleSearchRegion}>
-                        <Ionicons name="search" size={18} color="white" style={{marginRight: 6}} />
-                        <Text style={styles.searchBtnText}>Terapkan Filter</Text>
-                    </TouchableOpacity>
-                    
-                    {selectedProvince && (
-                        <TouchableOpacity style={styles.resetBtn} onPress={resetToNasional}>
-                            <Ionicons name="refresh" size={18} color="#EF4444" style={{marginRight: 6}} />
-                            <Text style={styles.resetBtnText}>Reset ke Nasional</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-
-                <Text style={styles.activeRegionText}>Menampilkan data: <Text style={{fontWeight: 'bold', color: '#3B82F6'}}>{currentRegionLabel}</Text></Text>
-            </View>
-
-            <ScrollView style={styles.contentScroll} contentContainerStyle={{ paddingBottom: 40 }}>
-                {isLoading || !statsData ? (
-                    <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 50 }} />
-                ) : (
-                    <>
-                        <Text style={styles.sectionTitle}>Ringkasan (3 Bulan Terakhir)</Text>
-                        <View style={{flexDirection: 'row', gap: 10}}>
-                            <View style={{flex: 1}}>
-                                <StatCard icon="people" title="Laporan Warga" value={statsData.engagementStats.totalNewReports} bgColor="#DBEAFE" iconColor="#3B82F6" />
-                            </View>
-                            <View style={{flex: 1}}>
-                                <StatCard icon="warning" title="Titik Kerusakan" value={statsData.infrastructureStats.totalDamagePoints} bgColor="#FEF3C7" iconColor="#D97706" />
-                            </View>
+                            <TouchableOpacity 
+                                style={[styles.dropdownBtn, !selectedProvince && {opacity: 0.5}]} 
+                                disabled={!selectedProvince}
+                                onPress={()=>{ setDropdownMode('city'); setDropdownVisible(true); }}
+                            >
+                                <Text style={styles.dropdownText} numberOfLines={1}>{selectedCity ? selectedCity.name : "Pilih Kota/Kab..."}</Text>
+                                <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                            </TouchableOpacity>
                         </View>
 
-                        {/* Bar Chart Kategori */}
-                        <View style={styles.breakdownBox}>
-                            <Text style={styles.breakdownTitle}>Persebaran Kategori Kerusakan</Text>
-                            <CustomBarChart data={statsData.infrastructureStats.byCategory} labelKey="issueType" color="#F59E0B" />
-                        </View>
-
-                        {/* Bar Chart Status */}
-                        <View style={styles.breakdownBox}>
-                            <Text style={styles.breakdownTitle}>Perkembangan Status Penanganan</Text>
-                            <CustomBarChart data={statsData.infrastructureStats.byStatus} labelKey="status" color="#10B981" />
-                        </View>
-                    </>
-                )}
-            </ScrollView>
-
-            <Modal visible={dropdownVisible} transparent={true} animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Pilih {dropdownMode === 'province' ? 'Provinsi' : 'Kota/Kabupaten'}</Text>
-                            <TouchableOpacity onPress={() => setDropdownVisible(false)}><Ionicons name="close" size={24} /></TouchableOpacity>
-                        </View>
-                        <FlatList
-                            data={dropdownMode === 'province' ? provinces : cities}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({item}) => (
-                                <TouchableOpacity style={styles.listItem} onPress={() => {
-                                    if(dropdownMode === 'province'){
-                                        setSelectedProvince(item);
-                                        setSelectedCity(null);
-                                        fetchCities(item.id);
-                                    } else {
-                                        setSelectedCity(item);
-                                    }
-                                    setDropdownVisible(false);
-                                }}>
-                                    <Text style={styles.listItemText}>{item.name}</Text>
+                        <View style={styles.searchBtnRow}>
+                            <TouchableOpacity style={styles.searchBtn} onPress={handleSearchRegion}>
+                                <Ionicons name="search" size={18} color="white" style={{marginRight: 6}} />
+                                <Text style={styles.searchBtnText}>Terapkan Filter</Text>
+                            </TouchableOpacity>
+                            
+                            {selectedProvince && (
+                                <TouchableOpacity style={styles.resetBtn} onPress={resetToNasional}>
+                                    <Ionicons name="refresh" size={18} color="#EF4444" style={{marginRight: 6}} />
+                                    <Text style={styles.resetBtnText}>Reset ke Nasional</Text>
                                 </TouchableOpacity>
                             )}
-                        />
-                    </View>
-                </View>
-            </Modal>
+                        </View>
 
-            <WarningModal visible={warning.visible} title={warning.title} message={warning.message} confirmText="OK" onConfirm={() => setWarning({ ...warning, visible: false })} onCancel={() => setWarning({ ...warning, visible: false })} />
-        </View>
+                        <Text style={styles.activeRegionText}>Menampilkan data: <Text style={{fontWeight: 'bold', color: '#3B82F6'}}>{currentRegionLabel}</Text></Text>
+                    </View>
+
+                    <ScrollView style={styles.contentScroll} contentContainerStyle={{ paddingBottom: 40 }}>
+                        {isLoading || !statsData ? (
+                            <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 50 }} />
+                        ) : (
+                            <>
+                                <Text style={styles.sectionTitle}>Ringkasan (3 Bulan Terakhir)</Text>
+                                <View style={{flexDirection: 'row', gap: 10}}>
+                                    <View style={{flex: 1}}>
+                                        <StatCard icon="people" title="Laporan Warga" value={statsData.engagementStats.totalNewReports} bgColor="#DBEAFE" iconColor="#3B82F6" />
+                                    </View>
+                                    <View style={{flex: 1}}>
+                                        <StatCard icon="warning" title="Titik Kerusakan" value={statsData.infrastructureStats.totalDamagePoints} bgColor="#FEF3C7" iconColor="#D97706" />
+                                    </View>
+                                </View>
+
+                                {/* Bar Chart Kategori */}
+                                <View style={styles.breakdownBox}>
+                                    <Text style={styles.breakdownTitle}>Persebaran Kategori Kerusakan</Text>
+                                    <CustomBarChart data={statsData.infrastructureStats.byCategory} labelKey="issueType" color="#F59E0B" />
+                                </View>
+
+                                {/* Bar Chart Status */}
+                                <View style={styles.breakdownBox}>
+                                    <Text style={styles.breakdownTitle}>Perkembangan Status Penanganan</Text>
+                                    <CustomBarChart data={statsData.infrastructureStats.byStatus} labelKey="status" color="#10B981" />
+                                </View>
+                            </>
+                        )}
+                    </ScrollView>
+
+                    <Modal visible={dropdownVisible} transparent={true} animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Pilih {dropdownMode === 'province' ? 'Provinsi' : 'Kota/Kabupaten'}</Text>
+                                    <TouchableOpacity onPress={() => setDropdownVisible(false)}><Ionicons name="close" size={24} /></TouchableOpacity>
+                                </View>
+                                <FlatList
+                                    data={dropdownMode === 'province' ? provinces : cities}
+                                    keyExtractor={(item) => item.id}
+                                    renderItem={({item}) => (
+                                        <TouchableOpacity style={styles.listItem} onPress={() => {
+                                            if(dropdownMode === 'province'){
+                                                setSelectedProvince(item);
+                                                setSelectedCity(null);
+                                                fetchCities(item.id);
+                                            } else {
+                                                setSelectedCity(item);
+                                            }
+                                            setDropdownVisible(false);
+                                        }}>
+                                            <Text style={styles.listItemText}>{item.name}</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                />
+                            </View>
+                        </View>
+                    </Modal>
+
+                    <WarningModal visible={warning.visible} title={warning.title} message={warning.message} confirmText="OK" onConfirm={() => setWarning({ ...warning, visible: false })} onCancel={() => setWarning({ ...warning, visible: false })} />
+                </View>
+            ):(<NotFoundPage/>)}
+        </>
+        
     )
 }
 
