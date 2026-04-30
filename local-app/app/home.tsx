@@ -11,6 +11,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Map from '../components/Map';
 import DetailModal from "../components/Modals/DetailModal";
+import NotificationModal from "@/components/Modals/NotificationModal";
 import Navbar from '../components/Navbar';
 
 async function getStorageValue(key: string){
@@ -87,7 +88,10 @@ function Home() {
     const [reportVisible, setReportVisible] = useState(false);
     const [reportTargetType, setReportTargetType] = useState<'User' | 'TagVersion' | 'Comment' | null>(null);
     const [reportTargetId, setReportTargetId] = useState<number | null>(null);
-    const [reportTargetName, setReportTargetName] = useState<string>('');
+    const [reportTargetName, setReportTargetName] = useState<string>('')
+
+    //notification
+    const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
     //state untuk filter tag
     const [activeFilter, setActiveFilter] = useState<string>('Semua')
@@ -313,27 +317,16 @@ function Home() {
                     </Text>
                 </View>
             )}
-            {isSelectingLocation? (
-                <Navbar 
-                    login={isLogedIn} 
-                    onLogout={() => setConfirmLogoutVisible(true)} 
-                    onSearchResults={handleLocationSearch}
-                    onPickLocationMode={true}
-                    currentUserLocation={currentLocation}
-                    onProfilePress={handleOpenMyProfile}
-                    userRole={myRole}
-                />
-            ):(
-                <Navbar 
-                    login={isLogedIn} 
-                    onLogout={() => setConfirmLogoutVisible(true)} 
-                    onSearchResults={handleLocationSearch}
-                    onPickLocationMode={false}
-                    currentUserLocation={currentLocation}
-                    onProfilePress={handleOpenMyProfile}
-                    userRole={myRole}
-                />
-            )}
+            <Navbar 
+                login={isLogedIn} 
+                onLogout={() => setConfirmLogoutVisible(true)} 
+                onSearchResults={handleLocationSearch}
+                onPickLocationMode={isSelectingLocation? true : false}
+                currentUserLocation={currentLocation}
+                onProfilePress={handleOpenMyProfile}
+                userRole={myRole}
+                onNotificationPress={() => setNotificationModalVisible(true)}
+            />
             {!isSelectingLocation && (
                 <View style={{ position: 'absolute', top: 70, left: 0, right: 0, zIndex: 10 }}>
                     <ScrollView 
@@ -523,6 +516,10 @@ function Home() {
                     setReportTargetName(name);
                     setReportVisible(true);
                 }}
+            />
+            <NotificationModal 
+                visible={notificationModalVisible} 
+                onClose={() => setNotificationModalVisible(false)} 
             />
             <ConfirmModal
                 visible={confirmLocationVisible}

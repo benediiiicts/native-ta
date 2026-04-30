@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { Alert, FlatList, Keyboard, Platform, Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { styles } from '../styles/Navbar.styles'; 
 
@@ -12,15 +14,60 @@ interface NavbarProps {
     currentUserLocation?: {latitude: number, longitude: number} | null;
     onProfilePress: () => void
     userRole: string | null
+    onNotificationPress: () => void
 }
 
-function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation, onProfilePress, userRole }: NavbarProps) {
+async function getStorageValue(key: string){
+    if (Platform.OS === 'web') {
+        try {
+            return localStorage.getItem(key);
+        } catch (error) {
+            console.error(`Local storage is unavailable: ${error}`);
+            return null;
+        }
+    } else {
+        return await SecureStore.getItemAsync(key);
+    }
+}
+
+
+function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentUserLocation, onProfilePress, userRole, onNotificationPress }: NavbarProps) {
     let router = useRouter();
+    const tokenKey = 'userToken'
 
     const [searchLocation, setSearchLocation] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
+
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(()=>{
+        let interval: any
+        if(login){
+            fetchUnreadCount()
+            interval = setInterval(fetchUnreadCount, 3 * 60 * 1000)
+        }
+        return () => clearInterval(interval)
+    }, [])
+
+    async function fetchUnreadCount(){
+        try{
+            const token = await getStorageValue(tokenKey)
+            if(!token) return
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`
+            const response = await fetch(apiUrl, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const jsonResponse = await response.json()
+            if (jsonResponse.status === 200) {
+                setUnreadCount(jsonResponse.data.unreadCount)
+            }
+        }
+        catch(error){
+            console.error("Gagal memuat jumlah notifikasi:", error);
+        }
+    }
 
     async function handleSearch () {
         if (!searchLocation.trim()) return; 
@@ -107,7 +154,7 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                         placeholderTextColor="#888"
                         value={searchLocation}
                         onChangeText={(text) => {
-                            setSearchLocation(text);
+                            setSearchLocation(text)
                             if (isDropdownVisible) setIsDropdownVisible(false); 
                             if (isMenuVisible) setIsMenuVisible(false);
                         }}
@@ -139,18 +186,37 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
             </View>
             
             {!onPickLocationMode && (
-                <View style={{ zIndex: 1001, elevation: 1001, position: 'relative' }}>
+                <View style={{ zIndex: 1001, elevation: 1001, position: 'relative', flexDirection: 'row', alignItems: 'center' }}>
+                    
+                    {login && (
+                        <TouchableOpacity 
+                            onPress={() => {
+                                setIsMenuVisible(false)
+                                onNotificationPress()
+                                setUnreadCount(0)
+                            }}
+                            style={{ marginRight: 15, position: 'relative' }}
+                        >
+                            <Ionicons name="notifications-outline" size={26} color="#4B5563" />
+                            {unreadCount > 0 && (
+                                <View style={{
+                                    position: 'absolute', right: -4, top: -4,
+                                    backgroundColor: '#EF4444', borderRadius: 10, width: 18, height: 18,
+                                    justifyContent: 'center', alignItems: 'center'
+                                }}>
+                                    <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity 
                         onPress={toggleMenu}
                         style={{
-                            backgroundColor: 'white',
-                            padding: 8,
-                            borderRadius: 8,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            elevation: 3,
+                            backgroundColor: 'white', padding: 8, borderRadius: 8,
+                            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
                         }}
                     >
                         <Ionicons name={isMenuVisible ? "close" : "menu"} size={28} color="#333" />
@@ -160,15 +226,15 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                         <View style={styles.menuDropdown}>
                             {login ? (
                                 <>
-                                {userRole == 'admin' && (
-                                    <TouchableOpacity style={styles.menuItem} onPress={() => {
-                                        setIsMenuVisible(false);
-                                        router.push('/admin/dashboard')
-                                    }}>
-                                        <Ionicons name="construct" size={20} color="#4B5563" />
-                                        <Text style={styles.menuText}>Administrator</Text>
-                                    </TouchableOpacity>
-                                )}
+                                    {userRole === 'admin' && (
+                                        <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                            setIsMenuVisible(false);
+                                            router.push('/admin/dashboard')
+                                        }}>
+                                            <Ionicons name="construct" size={20} color="#4B5563" />
+                                            <Text style={styles.menuText}>Administrator</Text>
+                                        </TouchableOpacity>
+                                    )}
 
                                     <TouchableOpacity style={styles.menuItem} onPress={() => {
                                         setIsMenuVisible(false);
