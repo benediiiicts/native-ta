@@ -33,7 +33,7 @@ async function getStorageValue(key: string){
 
 export const TAG_TYPES = [
     'Jalan Rusak',           
-    'Fasilitas Jalan Rusak', 
+    'Kerusakan Fasilitas', 
     'Genangan Air / Banjir', 
     'Hambatan Jalan',        
     'Kecelakaan Lalu Lintas',

@@ -5,6 +5,7 @@ import userRouter from './Routes/UserRoutes.js'
 import tagRouter from './Routes/TagRoutes.js'
 import reportRouter from './Routes/ReportRoutes.js';
 import adminRouter from './Routes/AdminRoutes.js'
+import notificationRouter from './Routes/NotificationRoutes.js';
 import sequelize from './database.js'
 import 'dotenv/config';
 import setupAssociations from './Models/associations.js';
@@ -35,6 +36,7 @@ app.use('/api/users', userRouter)
 app.use('/api/tags', tagRouter)
 app.use('/api/reports', reportRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/notifications', notificationRouter)
 
 app.use('/uploads', express.static('uploads'));
 
