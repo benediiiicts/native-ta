@@ -8,10 +8,7 @@ async function fetchUserNotifications(_userId){
             limit: 50
         })
 
-        const unreadCount = 0
-        notificationList.map((n)=>{
-            if(!n.isRead) unreadCount++
-        })
+        const unreadCount = notificationList.filter(n => !n.isRead).length
 
         return{
             status: 200,
