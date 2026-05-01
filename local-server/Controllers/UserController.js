@@ -1,4 +1,4 @@
-import {getUser, createUser, checkCredentials, getUserProfile, updateUsername} from "../Services/UserService.js"
+import {getUser, createUser, checkCredentials, getUserProfile, updateUsername, handleGoogleLogin} from "../Services/UserService.js"
 
 async function userLogin(req, res){
     try{
@@ -27,6 +27,27 @@ async function userRegister(req, res){
     catch(error){
         console.log(`Register error in controller: ${error}`)
         res.status(500).json({message: "Internal server error"})
+    }
+}
+
+async function googleAuth(req, res){
+    try{
+        const {email, username} = req.body
+        if(!email || !username){
+            return{
+                status: 400,
+                message: "Email and username are required"
+            }
+        }
+        let result = await handleGoogleLogin(email, username)
+        return res.status(result.status).json({
+            message: result.message,
+            data: result.data || null
+        })
+    }
+    catch(error){
+        console.log(`Google Auth login error: ${error}`)
+        res.status(500).json({ message: "Internal server error" })
     }
 }
 
@@ -77,6 +98,7 @@ async function changeUsername(req, res){
 export {
     userLogin,
     userRegister,
+    googleAuth,
     getUserByEmail,
     fetchUserProfile,
     changeUsername
