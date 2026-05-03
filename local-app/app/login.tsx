@@ -1,8 +1,13 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { makeRedirectUri, ResponseType, useAuthRequest } from 'expo-auth-session';
 import { Link, useRouter } from "expo-router";
-import { styles } from "../styles/LoginRegister.styles";
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useState } from "react";
+import { Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { styles } from "../styles/LoginRegister.styles";
+
+WebBrowser.maybeCompleteAuthSession();
 
 async function saveStorage(key: string, value: string) {
     if(Platform.OS == 'web'){
@@ -31,6 +36,12 @@ async function getStorageValue(key: string){
     }
 }
 
+const discovery = {
+    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenEndpoint: 'https://oauth2.googleapis.com/token',
+    revocationEndpoint: 'https://oauth2.googleapis.com/revoke'
+}
+
 function Login() {
     const router = useRouter();
 
@@ -39,6 +50,27 @@ function Login() {
     let [errorMessage, setErrorMessage] = useState('');
     let [successMessage, setSuccessMessage] = useState('');
     let [isLoading, setIsLoading] = useState(false); 
+
+    const [request, response, promptAsync] = useAuthRequest(
+        {
+            clientId: `${process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID}`,
+            scopes: ['profile', 'email'],
+            responseType: ResponseType.Token,
+            usePKCE: false,
+            redirectUri: makeRedirectUri({})
+        }, 
+        discovery
+    )
+
+    useEffect(()=>{
+        if(response?.type == 'success'){
+            const { access_token } = response.params
+            handleGoogleLogin(access_token)
+        }
+        else if(response?.type == 'error'){
+            setErrorMessage("Google Login gagal atau dibatalkan.")
+        }
+    }, [response])
 
     async function handleLogin() {
         setErrorMessage('');
@@ -77,7 +109,7 @@ function Login() {
 
             const jsonResponse = await response.json();
 
-            if (response.status === 200) {
+            if (jsonResponse.status === 200) {
                 if (jsonResponse.data && jsonResponse.data.token) {
                     await saveStorage('userToken', jsonResponse.data.token);
                 }
@@ -96,6 +128,53 @@ function Login() {
             console.error(error);
             setErrorMessage("Kesalahan Jaringan. Tidak dapat terhubung ke server.");
             setIsLoading(false);
+        }
+    }
+    
+    async function handleGoogleLogin(token: string | undefined){
+        if(!token) return
+        setIsLoading(true)
+        try{
+            const googleApiUrl = 'https://www.googleapis.com/oauth2/v3/userinfo'
+            const googleResponse = await fetch(googleApiUrl,{
+                headers:{
+                    Authorization: `Bearer ${token}`
+                }
+            })
+            const googleJsonResponse = await googleResponse.json()
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/users/google-login`
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers:{
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: googleJsonResponse.email,
+                    username: googleJsonResponse.name || googleJsonResponse.given_name
+                })
+            })
+            const jsonResponse = await response.json()
+            if(jsonResponse.status == 200){
+                if(jsonResponse.data && jsonResponse.data.token){
+                    await saveStorage('userToken', jsonResponse.data.token)
+                }
+                setSuccessMessage("Login Google berhasil! Mengalihkan...")
+                setTimeout(()=>{
+                    setIsLoading(false)
+                    router.replace('/home')
+                }, 2000)
+            }
+            else{
+                setErrorMessage(jsonResponse.message)
+                setIsLoading(false)
+            }
+        }
+        catch(error){
+            console.error(error)
+            setErrorMessage("Gagal memproses data dari Google.")
+        }
+        finally{
+            setIsLoading(false)
         }
     }
 
@@ -157,6 +236,21 @@ function Login() {
                         {isLoading ? "Memproses..." : "Log in"}
                     </Text>
                 </TouchableOpacity>
+
+                <View style={styles.dividerContainer}>
+                    <View style={styles.line} />
+                    <Text style={styles.orText}>ATAU</Text>
+                    <View style={styles.line} />
+                </View>
+
+                <TouchableOpacity 
+                    style={styles.googleButton} 
+                    onPress={() => promptAsync()}
+                    disabled={!request || isLoading}
+                >
+                    <Ionicons name="logo-google" size={20} color="#4B5563" style={{ marginRight: 10 }} />
+                    <Text style={styles.googleButtonText}>Login dengan Google</Text>
+                </TouchableOpacity>
                 
                 <View style={styles.footerContainer}>
                     <Text style={styles.footerText}>Don't have an account?</Text>
@@ -168,7 +262,7 @@ function Login() {
                 </View>
             </View>
         </View>
-    );
+    )
 }
 
 export default Login;

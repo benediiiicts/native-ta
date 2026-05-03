@@ -5,6 +5,7 @@ async function userLogin(req, res){
         const {email, password} = req.body
         let result = await checkCredentials(email, password)
         return res.status(result.status).json({
+            status: result.status,
             message: result.message,
             data: result.data || null
         })
@@ -20,6 +21,7 @@ async function userRegister(req, res){
         const {username, email, password} = req.body
         let result = await createUser(username, email, password)
         return res.status(result.status).json({
+            status: result.status,
             message: result.message,
             data: result.data || null
         })
@@ -41,6 +43,7 @@ async function googleAuth(req, res){
         }
         let result = await handleGoogleLogin(email, username)
         return res.status(result.status).json({
+            status: result.status,
             message: result.message,
             data: result.data || null
         })
@@ -56,6 +59,7 @@ async function getUserByEmail(req, res){
         const email = req.params.email
         let result = await getUser(email)
         return res.status(result.status).json({
+            status: result.status,
             message: result.message,
             data: result.data || null
         })

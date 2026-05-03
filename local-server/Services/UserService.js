@@ -36,7 +36,8 @@ async function handleGoogleLogin(_email, _username){
         })
 
         if(!tempUser){
-            const randomPassword = crypto.randomBytes(16).toString('hex')
+            //buat password random pada db
+            const randomPassword = Math.random().toString(36).slice(-8) + Date.now().toString(36)
             const hashedPassword = await hashPassword(randomPassword)
 
             tempUser = await user.create({

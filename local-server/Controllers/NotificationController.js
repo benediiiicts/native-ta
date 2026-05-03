@@ -58,7 +58,7 @@ async function readAllNotifications(req, res){
     }
 }
 
-return {
+export {
     getNotifications,
     readNotification,
     readAllNotifications
