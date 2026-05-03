@@ -3,6 +3,10 @@
 # dependencies
 node_modules/
 
+public/
+public/bandung_raya_roads.*
+public/bandung_raya_roads.json
+
 # Expo
 .expo/
 dist/
