@@ -3,9 +3,9 @@
 # dependencies
 node_modules/
 
-public/
-public/bandung_raya_roads.*
-public/bandung_raya_roads.json
+Static/
+Static/bandung_raya_roads.*
+Static/bandung_raya_roads.json
 
 # Expo
 .expo/

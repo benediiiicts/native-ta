@@ -31,7 +31,7 @@ async function loadRoad(){
         console.log("Membaca data jalan dari file JSON (Native)...");
         
         // 1. Baca seluruh isi file sebagai string
-        const rawData = await fs.readFile('./public/bandung_raya_roads.json', 'utf8');
+        const rawData = await fs.readFile('./Static/bandung_raya_roads.json', 'utf8');
         
         // 2. Ubah string menjadi objek JSON
         const parsedData = JSON.parse(rawData);
