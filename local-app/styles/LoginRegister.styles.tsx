@@ -80,5 +80,10 @@ export const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         marginLeft: 5,
-    }
+    },
+    dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+    line: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+    orText: { marginHorizontal: 10, color: '#9CA3AF', fontSize: 12, fontWeight: 'bold' },
+    googleButton: { flexDirection: 'row', backgroundColor: 'white', borderWidth: 1, borderColor: '#D1D5DB', paddingVertical: 12, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    googleButtonText: { color: '#374151', fontSize: 16, fontWeight: 'bold' }
 });

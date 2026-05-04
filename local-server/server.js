@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cron from 'node-cron'
+import fs from 'fs/promises';
 import userRouter from './Routes/UserRoutes.js'
 import tagRouter from './Routes/TagRoutes.js'
 import reportRouter from './Routes/ReportRoutes.js';
@@ -9,28 +10,45 @@ import notificationRouter from './Routes/NotificationRoutes.js';
 import sequelize from './database.js'
 import 'dotenv/config';
 import setupAssociations from './Models/associations.js';
-import {countRelevanceScore} from './Services/TagService.js'
+import { countRelevanceScore } from './Services/TagService.js'
+import { fetchStatistic } from './Services/AdminService.js'
 
 const app = express()
-
-// const option = {
-//     origin: process.env.SERVER_URL,
-//     methods: 'POST, PUT, GET, DELETE'
-// }
 
 app.use(cors())
 app.use(express.json())
 
-//setup asosiasi sequelize
 setupAssociations();
 
-//Cron Job tag service
-//dijalankan pada tengah malam
 cron.schedule('0 0 * * *', () => {
     countRelevanceScore();
 });
 
-//Routes API
+let allRoads = []
+
+async function loadRoad(){
+    try{
+        console.log("Membaca data jalan dari file JSON (Native)...");
+        
+        // 1. Baca seluruh isi file sebagai string
+        const rawData = await fs.readFile('./Static/bandung_raya_roads.json', 'utf8');
+        
+        // 2. Ubah string menjadi objek JSON
+        const parsedData = JSON.parse(rawData);
+
+        // 3. Ambil array elements dan filter hanya yang bertipe 'way'
+        if (parsedData.elements) {
+            allRoads = parsedData.elements.filter(value => value.type === 'way');
+        }
+
+        console.log(`Roads data successfully loaded! Total: ${allRoads.length} ruas jalan.`);
+    }
+    catch(error){
+        console.error(`Error while loading road data: ${error}`);
+        throw error; // Lempar error agar server membatalkan startup jika file tidak ditemukan
+    }
+}
+
 const port = 8080
 app.use('/api/users', userRouter)
 app.use('/api/tags', tagRouter)
@@ -40,24 +58,49 @@ app.use('/api/notifications', notificationRouter)
 
 app.use('/uploads', express.static('uploads'));
 
-//cron -> untuk update skor secara berkala
-//belum tentu dipakai
-// cron.schedule('0 * * * *', async () => {
-//     console.log("Menjalankan kalkulasi ulang skor relevansi...");
-//     await updateAllTagScores();
-// });
+app.get('/api/roads', (req,res)=>{
+    const s = parseFloat(req.query.s)
+    const w = parseFloat(req.query.w)
+    const n = parseFloat(req.query.n)
+    const e = parseFloat(req.query.e)
 
-app.listen(port, async ()=>{
-    try {
+    if(isNaN(s) || isNaN(w) || isNaN(n) || isNaN(e)){
+        return res.status(400).json({
+            message: "Bounding box parameters not valid"
+        })
+    }
+
+    const visibleRoads = allRoads.filter((way)=>{
+        if(!way.geometry) return false
+        return way.geometry.some((pos)=>
+            (pos.lat >= s && pos.lat <= n) &&
+            (pos.lon >= w && pos.lon <= e)
+        )
+    })
+
+    return res.json(visibleRoads)
+})
+
+async function startServer(){
+    try{
+        console.log('==============================================')
+        console.log('Starting server initialization...')
         await sequelize.authenticate();
         await sequelize.sync();
+        console.log('Database connected')
         console.log('==============================================')
-        //untuk menjalankan 1 kali setelah server berjalan
-        countRelevanceScore();
+        
+        await loadRoad() 
+        
         console.log('==============================================')
-        console.log(`Listening on port: ${port}`)
-        console.log('Database connected');
-    } catch (error) {
-        console.error('Cannot connent to the database:', error);
+        countRelevanceScore()
+        app.listen(port, ()=>{
+            console.log(`listening on port: ${port}`)
+        })
     }
-})
+    catch(error){
+        console.error('Cannot start the server:', error)
+    }
+}
+
+startServer()

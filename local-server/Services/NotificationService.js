@@ -1,4 +1,4 @@
-import { notification } from "../Models/NotificationModel";
+import { notification } from "../Models/NotificationModel.js";
 
 async function fetchUserNotifications(_userId){
     try{

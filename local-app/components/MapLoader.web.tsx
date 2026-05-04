@@ -1,10 +1,11 @@
+// import localOverpassData from '@/assets/bandung_raya.json';
 import L from 'leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster'
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
-import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 
 let DefaultIcon = L.icon({
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -152,22 +153,33 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
 
 async function fetchOverpass(s: number, w: number, n: number, e: number){
     console.log(s, w, n, e)
-    let query = `
-    [out:json][timeout:30];
-    way["highway"](${s}, ${w}, ${n}, ${e});
-    out geom;
-    `;
-    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
+    // let query = `
+    // [out:json][timeout:30];
+    // way["highway"](${s}, ${w}, ${n}, ${e});
+    // out geom;
+    // `;
+    // let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
-    try {
-        let response = await fetch(url_overpass);
-        if (!response.ok) return []; 
-        let data = await response.json();
-        return data.elements || []; 
+    // try {
+    //     let response = await fetch(url_overpass);
+    //     if (!response.ok) return []; 
+    //     let data = await response.json();
+    //     return data.elements || []; 
+    // }
+    // catch(error) {
+    //     console.error("Failed to fetch from Overpass:", error);
+    //     return [];
+    // }
+    const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/roads?s=${s}&w=${w}&n=${n}&e=${e}`
+    try{
+        const response = await fetch(apiUrl)
+        if(!response.ok) return []
+        const jsonResponse = await response.json()
+        return jsonResponse
     }
-    catch(error) {
-        console.error("Failed to fetch from Overpass:", error);
-        return [];
+    catch(error){
+        console.error(`Gagal mengambil data jalan: ${error}`)
+        return []
     }
 }
 

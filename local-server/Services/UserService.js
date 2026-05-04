@@ -29,6 +29,49 @@ function handleJwt(_userData){
     return token
 }
 
+async function handleGoogleLogin(_email, _username){
+    try{
+        let tempUser = await user.findOne({
+            where: {email: _email}
+        })
+
+        if(!tempUser){
+            //buat password random pada db
+            const randomPassword = Math.random().toString(36).slice(-8) + Date.now().toString(36)
+            const hashedPassword = await hashPassword(randomPassword)
+
+            tempUser = await user.create({
+                username: _username,
+                email: _email,
+                password: hashedPassword
+            })
+        }
+
+        const _token = handleJwt(tempUser)
+
+        return{
+            status: 200,
+            message: "Google login successfull",
+            data:{
+                user: {
+                    id: tempUser.id,
+                    username: tempUser.username,
+                    email: tempUser.email,
+                    role: tempUser.role
+                },
+                token: _token
+            }
+        }
+    }
+    catch(error){
+        console.error(`Error during Google login: ${error}`);
+        return {
+            status: 500,
+            message: "Internal server error during Google login"
+        }
+    }
+}
+
 async function checkCredentials(_email, _password){
     const tempUser = await getUser(_email)
     if(tempUser.status !== 200){
@@ -221,5 +264,6 @@ export {
     createUser,
     checkCredentials,
     getUserProfile,
-    updateUsername
+    updateUsername,
+    handleGoogleLogin
 }

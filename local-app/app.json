@@ -2,6 +2,7 @@
   "expo": {
     "name": "local-app",
     "slug": "local-app",
+    "owner": "benedicts",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -40,11 +41,18 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "da548fdc-4463-4bc2-bc3f-fd24fb179b30"
+      }
     }
   }
 }
