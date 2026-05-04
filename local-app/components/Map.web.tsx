@@ -3,11 +3,19 @@ import { lazy, Suspense } from "react";
 
 const MapLoader = lazy(() => import('./MapLoader.web'));
 
-function Map(){
+function Map({ active, targetLocation, onRoadSelect, tags=[], onTagSelect, currentUserLocation }: { active: boolean; targetLocation: any; onRoadSelect: any; tags?: any[]; onTagSelect: any; currentUserLocation: {latitude: number, longitude: number}}){
+
     return(
         <View style={{ flex: 1 }}>
             <Suspense fallback={<View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}><Text>Loading Map...</Text></View>}>
-                <MapLoader/>
+                <MapLoader 
+                    active={active} 
+                    targetLocation={targetLocation} 
+                    onRoadSelect={onRoadSelect}
+                    tags={tags}
+                    onTagSelect={onTagSelect}
+                    currentUserLocation={currentUserLocation}
+                />
             </Suspense>
         </View>
     )
