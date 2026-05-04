@@ -9,21 +9,32 @@ let map_path = `https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=
 
 async function fetchOverpass(s: number, w: number, n: number, e: number) {
     console.log(s, w, n, e)
-    let query = `
-        [out:json][timeout:30];
-        way["highway"](${s}, ${w}, ${n}, ${e});
-        out geom;z
-    `;
-    let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
+    // let query = `
+    //     [out:json][timeout:30];
+    //     way["highway"](${s}, ${w}, ${n}, ${e});
+    //     out geom;z
+    // `;
+    // let url_overpass = `https://overpass.private.coffee/api/interpreter?data=${encodeURIComponent(query)}`;
 
-    try {
-        let response = await fetch(url_overpass);
-        if (!response.ok) return []; 
-        let data = await response.json();
-        return data.elements || [];
-    } catch (error) {
-        console.error("Failed to fetch from Overpass:", error);
-        return [];
+    // try {
+    //     let response = await fetch(url_overpass);
+    //     if (!response.ok) return []; 
+    //     let data = await response.json();
+    //     return data.elements || [];
+    // } catch (error) {
+    //     console.error("Failed to fetch from Overpass:", error);
+    //     return [];
+    // }
+    const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/roads?s=${s}&w=${w}&n=${n}&e=${e}`
+    try{
+        const response = await fetch(apiUrl)
+        if(!response.ok) return []
+        const jsonResponse = await response.json()
+        return jsonResponse
+    }
+    catch(error){
+        console.error(`Gagal mengambil data jalan: ${error}`)
+        return []
     }
 }
 

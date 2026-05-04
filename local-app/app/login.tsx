@@ -57,7 +57,7 @@ function Login() {
             scopes: ['profile', 'email'],
             responseType: ResponseType.Token,
             usePKCE: false,
-            redirectUri: makeRedirectUri({})
+            redirectUri: makeRedirectUri({useProxy: true})
         }, 
         discovery
     )
