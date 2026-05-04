@@ -48,9 +48,7 @@ async function loadRoad(){
         throw error; // Lempar error agar server membatalkan startup jika file tidak ditemukan
     }
 }
-// ------------------------------------------------
 
-//Routes API
 const port = 8080
 app.use('/api/users', userRouter)
 app.use('/api/tags', tagRouter)
@@ -92,7 +90,6 @@ async function startServer(){
         console.log('Database connected')
         console.log('==============================================')
         
-        // Menunggu file JSON selesai dibaca dan diparsing
         await loadRoad() 
         
         console.log('==============================================')
