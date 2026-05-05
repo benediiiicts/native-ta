@@ -181,7 +181,8 @@ async function getTagDetail(_tagId, _userId=null, _versionId=null){
                         {
                             model: comments,
                             as: 'comments', 
-                            include: [{ model: user, as: 'commentAuthor', attributes: ['username'] }]
+                            include: [{ model: user, as: 'commentAuthor', 
+                                attributes: ['username', 'id'] }]
                         }
                     ]
                 }
@@ -330,7 +331,7 @@ async function getVersionHistory(_tagId){
             include: [{
                 model: user,
                 as: 'author',
-                attributes: ['username']
+                attributes: ['username', 'id']
             }],
             order: [['score', 'DESC']]
         })
@@ -346,6 +347,30 @@ async function getVersionHistory(_tagId){
         return{
             status: 500,
             message: 'Internal server error while fetching version history'
+        }
+    }
+}
+
+async function deleteTagComments(_commentId){
+    try{
+        const comment = await comments.findByPk(_commentId)
+        if(!comment){
+            return {
+                status: 404,
+                message: "Comment not found"
+            }
+        }
+        await comment.destroy()
+        return {
+            status: 200,
+            message: "comment successfully deleted"
+        }
+    }
+    catch(error){
+        console.error(`Error while deleting comment: ${error}`)
+        return{
+            status: 500,
+            message: "Internal server error while deleting comment"
         }
     }
 }
@@ -490,7 +515,7 @@ async function countRelevanceScore(){
                     score: decayScore
                 })
 
-                if(version.approveCount >= 3 && decayScore > highestScore){
+                if(version.approveCount >= 3 && decayScore > highestScore && !version.isHidden){
                     highestScore = decayScore
                     bestVersionId = version.id
                 }
@@ -556,5 +581,6 @@ export {
     getVersionHistory,
     voteTagVersion,
     countRelevanceScore,
-    checkRecentUpdate
+    checkRecentUpdate,
+    deleteTagComments
 }

@@ -20,12 +20,13 @@ async function manageTags(_tagId, _versionId, _isVerified, _visibility, _adminNo
             }
 
             if(_visibility === 'hide_version'){
-                version.isHidden = true;
+                version.isHidden = true
+                version.score = -9999
             } else if(_visibility === 'hide_road'){
-                road.isHidden = true;
+                road.isHidden = true
             } else if(_visibility === 'active') {
-                road.isHidden = false;
-                version.isHidden = false;
+                road.isHidden = false
+                version.isHidden = false
             }
 
             version.isVerified = _isVerified
@@ -34,6 +35,25 @@ async function manageTags(_tagId, _versionId, _isVerified, _visibility, _adminNo
             }
 
             await version.save({transaction: t})
+
+            if(version.isHidden && road.activeVersionId === version.id){
+                const alternative = await tagVersions.findOne({
+                    where:{
+                        tagRoadId: road.id,
+                        isHidden: false
+                    },
+                    order: [['score', 'DESC']],
+                    transaction: t
+                })
+
+                if(alternative){
+                    road.activeVersionId = alternative.id
+                }
+                else{//jika hanya ada 1 versi
+                    road.isHidden = true
+                }
+            }
+
             await road.save({transaction: t})
 
             let notifTitle = ''

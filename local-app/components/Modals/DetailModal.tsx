@@ -341,6 +341,29 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
         setReportVisible(true);
     }
 
+    async function handleDeleteComment(commentId : number){
+        try{
+            const token = await getStorageValue(tokenKey)
+            const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tags/comment/${commentId}`
+            const response = await fetch(apiUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            if(response.ok){
+                reloadComments()
+            }
+            else{
+                showWarning("Gagal", "Tidak dapat menghapus komentar.");
+            }
+        }
+        catch(error){
+            console.error(error)
+            showWarning("Error", "Terjadi kesalahan pada jaringan.")
+        }
+    }
+
     function handleAddVersion(){
         if(!userRole){
             showWarning("Akses Ditolak", "Login untuk memperbarui infomasi laporan", ()=>{router.push('/login'); onClose();})
@@ -627,14 +650,51 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
     };
 
     function renderHistory(){
+        const versions = versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id);
+        
+        const regularVersions = versions.filter((ver) => !ver.isHidden);
+        const hiddenVersions = versions.filter((ver) => ver.isHidden);
+
+        const renderCard = (ver: any, isHiddenMark: boolean) => {
+            const totalVotes = ver.approveCount + ver.rejectCount;
+            const approvePercentage = totalVotes > 0 ? Math.round((ver.approveCount / totalVotes) * 100) : 0;
+            const isThumbsUp = approvePercentage >= 50;
+
+            return (
+                <TouchableOpacity 
+                    key={ver.id} 
+                    style={[styles.historyCard, isHiddenMark && { opacity: 0.6, borderColor: '#EF4444' }]}
+                    onPress={() => {
+                        setViewedVersionId(ver.id)
+                        setHistoryMode(false)
+                    }}
+                >
+                    <View style={styles.cardHeader}>
+                        <FontAwesome5 
+                            name={ver.status === 'Sudah Diperbaiki' ? "check-circle" : "exclamation-triangle"} 
+                            size={20} 
+                            color={ver.status === 'Sudah Diperbaiki' ? "#10B981" : "#F59E0B"} 
+                        />
+                        <Text style={styles.statusText}>{ver.status} {isHiddenMark && "(Hidden)"}</Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                        <View>
+                            <Text style={styles.authorText}>Created by {ver.author?.username}</Text>
+                            <Text style={styles.dateText}>{new Date(ver.createdAt).toLocaleDateString('id-ID')}</Text>
+                        </View>
+                        <View style={styles.voteContainer}>
+                            <FontAwesome5 name={isThumbsUp ? "thumbs-up" : "thumbs-down"} size={18} color="#374151" />
+                            <Text style={styles.voteText}>{approvePercentage}%</Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            );
+        };
 
         return(
             <View style={styles.flex1}>
-                {/* Header Riwayat */}
                 <View style={styles.commentHeader}>
-                    <View style={styles.roadNamePill}>
-                        <Text style={styles.roadNameText}>{roadName}</Text>
-                    </View>
+                    <View style={styles.roadNamePill}><Text style={styles.roadNameText}>{roadName}</Text></View>
                     <TouchableOpacity onPress={() => setHistoryMode(false)}>
                         <Ionicons name="close-circle" size={32} color="#4B5563" />
                     </TouchableOpacity>
@@ -643,49 +703,25 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                 <ScrollView contentContainerStyle={styles.contentContainer}>
                     {isLoadingHistory ? (
                         <Text style={styles.centerMessageText}>Memuat riwayat...</Text>
-                    ) : versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id).length === 0 ? (
-                        <Text style={styles.emptyHistoryText}>
-                            Belum ada riwayat versi lain untuk jalan ini.
-                        </Text>
-                    ) :
-                    (
-                        versionHistory.filter((ver) => ver.id !== tagData?.activeVersion?.id)
-                            .map((ver) => {
-                            const totalVotes = ver.approveCount + ver.rejectCount;
-                            const approvePercentage = totalVotes > 0 ? Math.round((ver.approveCount / totalVotes) * 100) : 0;
-                            const isThumbsUp = approvePercentage >= 50;
+                    ) : (
+                        <>
+                            {regularVersions.length === 0 && (!hiddenVersions.length || userRole !== 'admin') ? (
+                                <Text style={styles.emptyHistoryText}>Belum ada riwayat versi lain.</Text>
+                            ) : (
+                                regularVersions.map((ver) => renderCard(ver, false))
+                            )}
 
-                            return (
-                                <TouchableOpacity 
-                                    key={ver.id} 
-                                    style={styles.historyCard}
-                                    onPress={() => {
-                                        setViewedVersionId(ver.id)
-                                        setHistoryMode(false)
-                                    }}
-                                    >
-                                        <View style={styles.cardHeader}>
-                                            <FontAwesome5 
-                                                name={ver.status === 'Sudah Diperbaiki' ? "check-circle" : "exclamation-triangle"} 
-                                                size={20} 
-                                                color={ver.status === 'Sudah Diperbaiki' ? "#10B981" : "#F59E0B"} 
-                                            />
-                                            <Text style={styles.statusText}>{ver.status}</Text>
-                                        </View>
-                                        
-                                        <View style={styles.cardBody}>
-                                            <View>
-                                                <Text style={styles.authorText}>Created by {ver.author?.username}</Text>
-                                                <Text style={styles.dateText}>{new Date(ver.createdAt).toLocaleDateString('id-ID')}</Text>
-                                            </View>
-                                            <View style={styles.voteContainer}>
-                                                <FontAwesome5 name={isThumbsUp ? "thumbs-up" : "thumbs-down"} size={18} color="#374151" />
-                                                <Text style={styles.voteText}>{approvePercentage}%</Text>
-                                            </View>
-                                        </View>
-                                </TouchableOpacity>
-                            );
-                        })
+                            {userRole === 'admin' && hiddenVersions.length > 0 && (
+                                <>
+                                    <View style={{ marginVertical: 20, flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ flex: 1, height: 1, backgroundColor: 'grey' }} />
+                                            <Text style={{ marginHorizontal: 10, color: 'grey', fontWeight: 'bold' }}>Disembunyikan</Text>
+                                        <View style={{ flex: 1, height: 1, backgroundColor: 'grey' }} />
+                                    </View>
+                                    {hiddenVersions.map((ver) => renderCard(ver, true))}
+                                </>
+                            )}
+                        </>
                     )}
                 </ScrollView>
             </View>
@@ -756,14 +792,28 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                 return (
                                     <View key={index} style={styles.commentItemWrapper}>
                                         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                                            <Text style={styles.commentAuthorText}>
-                                                {comment.commentAuthor?.username || 'Anonymous'}
-                                            </Text>
-                                            <TouchableOpacity onPress={() => {
-                                                handleReport('Comment', comment.id)
+                                            <TouchableOpacity onPress={()=>{
+                                                const authorId = comment.commentAuthor?.id
+                                                if(authorId){
+                                                    setSelectedUserId(authorId);
+                                                    setProfileModalVisible(true);
+                                                }
                                             }}>
-                                                <MaterialIcons name="more-vert" size={20} color="#9CA3AF" />
+                                                <Text style={styles.commentAuthorText}>
+                                                    {comment.commentAuthor?.username || 'Anonymous'}
+                                                </Text>
                                             </TouchableOpacity>
+                                            {userRole == 'admin' ? (
+                                                <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
+                                                    <MaterialIcons name="delete" size={22} color="#EF4444" />
+                                                </TouchableOpacity>
+                                            ):(
+                                                <TouchableOpacity onPress={() => {
+                                                    handleReport('Comment', comment.id)
+                                                }}>
+                                                    <MaterialIcons name="more-vert" size={20} color="#9CA3AF" />
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
                                         <Text style={styles.commentContentText}>
                                             {comment.content}
