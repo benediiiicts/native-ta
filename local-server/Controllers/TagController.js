@@ -6,7 +6,6 @@ import {
     createTagVersion, 
     voteTagVersion,
     checkRecentUpdate,
-    deleteTagComment,
     deleteTagComments} from '../Services/TagService.js'
 import {saveImages} from '../Services/MediaService.js'
 import { tagRoads } from '../Models/TagModel.js'
