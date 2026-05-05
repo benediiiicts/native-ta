@@ -56,7 +56,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
     const [warningConfirmText, setWarningConfirmText] = useState("OK");
-    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+    const [warningOnConfirm, setWarningOnConfirm] = useState<(() => void) | undefined>(undefined);
     
     function showWarning(title: string, message: string, onConfirmAction?: () => void, confirmText: string = "OK"){
         setWarningTitle(title);
@@ -69,7 +69,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                 onConfirmAction();
             });
         } else {
-            setWarningOnConfirm(() => () => setWarningVisible(false));
+            setWarningOnConfirm(undefined);
         }
         
         setWarningVisible(true);

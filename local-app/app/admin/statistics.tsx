@@ -320,7 +320,13 @@ function AdminStatistics(){
                         </View>
                     </Modal>
 
-                    <WarningModal visible={warning.visible} title={warning.title} message={warning.message} confirmText="OK" onConfirm={() => setWarning({ ...warning, visible: false })} onCancel={() => setWarning({ ...warning, visible: false })} />
+                    <WarningModal 
+                        visible={warning.visible} 
+                        title={warning.title} 
+                        message={warning.message} 
+                        confirmText="OK" 
+                        onConfirm={undefined} 
+                        onCancel={() => setWarning({ ...warning, visible: false })} />
                 </View>
             ):(<NotFoundPage/>)}
         </>

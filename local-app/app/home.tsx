@@ -68,7 +68,7 @@ function Home() {
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
     const [warningConfirmText, setWarningConfirmText] = useState("")
-    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+    const [warningOnConfirm, setWarningOnConfirm] = useState<(() => void) | undefined>(undefined);
 
     const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
     const [DetailModalVisible, setDetailModalVisible] = useState(false)
@@ -211,7 +211,7 @@ function Home() {
                 onConfirmAction() 
             });
         } else {
-            setWarningOnConfirm(() => () => setWarningVisible(false))
+            setWarningOnConfirm(undefined)
         }
         
         setWarningVisible(true)

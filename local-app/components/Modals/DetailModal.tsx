@@ -82,7 +82,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
     const [warningVisible, setWarningVisible] = useState(false);
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
-    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+    const [warningOnConfirm, setWarningOnConfirm] = useState<(() => void) | undefined>(undefined);
 
     const scrollViewRef = useRef<ScrollView>(null);
 
@@ -106,7 +106,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
         if (onConfirmAction) {
             setWarningOnConfirm(() => onConfirmAction);
         } else {
-            setWarningOnConfirm(() => () => setWarningVisible(false));
+            setWarningOnConfirm(undefined);
         }
         
         setWarningVisible(true);

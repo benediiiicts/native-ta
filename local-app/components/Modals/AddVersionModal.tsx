@@ -45,8 +45,8 @@ function AddVersionModal({ visible, onClose, tagRoadId, onVersionAdded }: AddVer
     const [warningVisible, setWarningVisible] = useState(false);
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
-    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
-    
+    const [warningOnConfirm, setWarningOnConfirm] = useState<(() => void) | undefined>(undefined);
+
     function showWarning(title: string, message: string, onConfirmAction?: () => void){
         setWarningTitle(title);
         setWarningMessage(message);
@@ -54,7 +54,7 @@ function AddVersionModal({ visible, onClose, tagRoadId, onVersionAdded }: AddVer
         if (onConfirmAction) {
             setWarningOnConfirm(() => onConfirmAction);
         } else {
-            setWarningOnConfirm(() => () => setWarningVisible(false));
+            setWarningOnConfirm(undefined);
         }
         
         setWarningVisible(true);

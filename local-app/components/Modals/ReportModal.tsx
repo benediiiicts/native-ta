@@ -39,7 +39,7 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
     const [warningVisible, setWarningVisible] = useState(false);
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
-    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+    const [warningOnConfirm, setWarningOnConfirm] = useState<(() => void) | undefined>(undefined);
 
     useEffect(() => {
         if(visible){
@@ -59,7 +59,7 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
                 onConfirmAction()
             });
         } else {
-            setWarningOnConfirm(() => () => setWarningVisible(false));
+            setWarningOnConfirm(undefined);
         }
         
         setWarningVisible(true);
