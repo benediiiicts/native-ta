@@ -28,10 +28,19 @@ function NotificationModal({visible, onClose}: NotificationModalProps){
     const [notifications, setNotifications] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(false)
 
+    useEffect(() => {
+        if (visible) {
+            fetchNotifications()
+        } else {
+            setNotifications([])
+        }
+    }, [visible])
+
     async function fetchNotifications(){
         setIsLoading(true)
         try{
             const token = await getStorageValue(tokenKey)
+            if (!token) return
             const apiurl = `${process.env.EXPO_PUBLIC_API_URL}/api/notifications`
             const response = await fetch(apiurl, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -57,8 +66,10 @@ function NotificationModal({visible, onClose}: NotificationModalProps){
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             })
-            const updated = notifications.map(n => ({...n, isRead: true})) 
-            setNotifications(updated)
+            if (response.ok) {
+                const updated = notifications.map(n => ({...n, isRead: true})) 
+                setNotifications(updated)
+            }
         }
         catch(error){
             console.error(error)
@@ -73,7 +84,9 @@ function NotificationModal({visible, onClose}: NotificationModalProps){
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             })
-            setNotifications(prev => prev.map(n => n.id == id? {...n, isRead: true}: n))
+            if (response.ok) {
+                setNotifications(prev => prev.map(n => n.id == id ? {...n, isRead: true} : n))
+            }
         }
         catch(error){
             console.error(error)
@@ -99,7 +112,12 @@ function NotificationModal({visible, onClose}: NotificationModalProps){
     }
 
     return (
-        <Modal visible={visible} transparent={true} animationType="slide">
+        <Modal 
+            visible={visible} 
+            transparent={true} 
+            animationType="slide"
+            onRequestClose={onClose}    
+        >
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.header}>
@@ -109,11 +127,13 @@ function NotificationModal({visible, onClose}: NotificationModalProps){
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.actionRow}>
-                        <TouchableOpacity onPress={markAllAsRead}>
-                            <Text style={styles.markReadText}>Tandai Semua Dibaca</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {notifications.length > 0 && (
+                        <View style={styles.actionRow}>
+                            <TouchableOpacity onPress={markAllAsRead}>
+                                <Text style={styles.markReadText}>Tandai Semua Dibaca</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {isLoading ? (
                         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 50 }} />

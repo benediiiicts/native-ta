@@ -5,7 +5,9 @@ import {
     getVersionHistory,
     createTagVersion, 
     voteTagVersion,
-    checkRecentUpdate} from '../Services/TagService.js'
+    checkRecentUpdate,
+    deleteTagComment,
+    deleteTagComments} from '../Services/TagService.js'
 import {saveImages} from '../Services/MediaService.js'
 import { tagRoads } from '../Models/TagModel.js'
 
@@ -75,8 +77,26 @@ async function fetchTagDetails(req, res){
         });
     }
     catch(error){
-        console.error(`Controller error while fetching tag details: ${error}`)
+        console.error(`Controller error while fetc hing tag details: ${error}`)
         return res.status(500).json({message: "Internal server error while fetching tag details"})
+    }
+}
+
+async function removeComment(req, res){
+    try{
+        const userRole = req.user.role
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ 
+                message: "Access denied. Action prohibited" 
+            });
+        }
+        const commentId = req.params.commentId
+        const result = await deleteTagComment(commentId)
+        return res.status(result.status).json(result)
+    }
+    catch(error){
+        console.error(`Error while removing comment: ${error}`)
+        return res.status(500).json({ message: "Internal server error" })
     }
 }
 
@@ -146,5 +166,6 @@ export {
     fetchTagDetails,
     handleVote,
     fetchVersionHistory,
-    checkUpdates
+    checkUpdates,
+    removeComment
 }

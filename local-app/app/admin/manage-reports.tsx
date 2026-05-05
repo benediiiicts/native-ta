@@ -345,7 +345,7 @@ function ManageReports() {
                     title={warning.title}
                     message={warning.message}
                     confirmText="OK"
-                    onConfirm={() => setWarning({ ...warning, visible: false })}
+                    onConfirm={undefined}
                     onCancel={() => setWarning({ ...warning, visible: false })}
                 />
 

@@ -41,7 +41,7 @@ function UserProfileModal({ visible, onClose, userId, isOwnProfile, isAdmin, onR
     const [warningTitle, setWarningTitle] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
     const [warningConfirmText, setWarningConfirmText] = useState("")
-    const [warningOnConfirm, setWarningOnConfirm] = useState<() => void>(() => () => setWarningVisible(false));
+    const [warningOnConfirm, setWarningOnConfirm] = useState<(() => void) | undefined>(undefined);
     
     useEffect(()=>{
         if(visible && userId){
@@ -81,7 +81,7 @@ function UserProfileModal({ visible, onClose, userId, isOwnProfile, isAdmin, onR
                 onConfirmAction() 
             });
         } else {
-            setWarningOnConfirm(() => () => setWarningVisible(false))
+            setWarningOnConfirm(undefined)
         }
         
         setWarningVisible(true)

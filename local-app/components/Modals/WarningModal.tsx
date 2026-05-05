@@ -8,7 +8,7 @@ interface WarningModalProps {
     title: string;
     message: string;
     onCancel: () => void;
-    onConfirm: () => void;
+    onConfirm?: () => void;
     confirmText?: string;
     cancelText?: string; 
 }
@@ -22,6 +22,8 @@ function WarningModal({
     confirmText = "Ya",
     cancelText = "Batal"
 }: WarningModalProps) {
+    const isSingleButton = !onConfirm;
+
     return (
         <Modal
             animationType="fade"
@@ -35,18 +37,22 @@ function WarningModal({
                     <Text style={styles.message}>{message}</Text>
 
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity 
-                            style={[styles.button, styles.cancelBtn]} 
-                            onPress={onCancel}
-                        >
-                            <Text style={styles.cancelText}>{cancelText}</Text>
-                        </TouchableOpacity>
+                        {!isSingleButton && (
+                            <TouchableOpacity 
+                                style={[styles.button, styles.cancelBtn]} 
+                                onPress={onCancel}
+                            >
+                                <Text style={styles.cancelText}>{cancelText}</Text>
+                            </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity 
-                            style={[styles.button, styles.primaryBtn]} 
-                            onPress={onConfirm}
+                            style={[styles.button, styles.primaryBtn, isSingleButton && { flex: 1, marginLeft: 0 }]} 
+                            onPress={isSingleButton ? onCancel : onConfirm}
                         >
-                            <Text style={styles.confirmText}>{confirmText}</Text>
+                            <Text style={styles.confirmText}>
+                                {isSingleButton ? "OK" : confirmText}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
