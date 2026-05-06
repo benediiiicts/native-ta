@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, 
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import styles from '@/styles/NotificationModal.styles';
+import { jwtDecode } from 'jwt-decode';
 
 interface NotificationModalProps {
     visible: boolean;
@@ -10,16 +11,38 @@ interface NotificationModalProps {
 }
 
 async function getStorageValue(key: string){
+    let token = null
     if (Platform.OS === 'web') {
         try {
-            return localStorage.getItem(key);
+            token = localStorage.getItem(key);
         } catch (error) {
             console.error(`Local storage is unavailable: ${error}`);
             return null;
         }
     } else {
-        return await SecureStore.getItemAsync(key);
+        token = await SecureStore.getItemAsync(key);
     }
+
+    //cek jika token expire
+    if(token){
+        try{
+            const decoded = jwtDecode(token)
+            const currentTime = Date.now() / 1000
+
+            if(decoded.exp && decoded.exp < currentTime){
+                if(Platform.OS === 'web') localStorage.removeItem(key)
+                else await SecureStore.deleteItemAsync(key)
+
+                return null
+            }
+        }
+        catch(error){
+            console.error(`Gagal encoding token: ${error}`)
+            return null
+        }
+    }
+
+    return token
 }
 
 function NotificationModal({visible, onClose}: NotificationModalProps){

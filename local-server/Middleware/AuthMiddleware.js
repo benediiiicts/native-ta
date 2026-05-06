@@ -9,16 +9,17 @@ function authenticateToken (req, res, next) {
             message: 'Unauthorized. No token provided.'
         });
     }
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-
+    try{
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
-
         next();
     } catch (error) {
-        return res.status(403).json({
-            message: 'Forbidden - Invalid or expired token',
-        });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ 
+                message: "Token expired, please login again" 
+            });
+        }
+        return res.status(403).json({ message: "Invalid token" });
     }
 };
 
