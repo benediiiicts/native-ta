@@ -449,9 +449,16 @@ async function voteTagVersion(_userId, _tagId, _voteType){
             const bestVersion = await tagVersions.findOne({
                 where: { 
                     tagRoadId: version.tagRoadId,
-                    approveCount: { [Op.gte]: 3 }
+                    isHidden: false,
+                    [Op.or]: [ // lebih dari 3 vote atau sudah terverifikasi
+                        { approveCount: { [Op.gte]: 3 } },
+                        { isVerified: true } 
+                    ]
                 },
-                order: [['score', 'DESC']],
+                order: [
+                    ['score', 'DESC'],
+                    ['createdAt', 'DESC']
+                ],
                 transaction: t
             });
 
@@ -500,24 +507,43 @@ async function countRelevanceScore(){
             
             let highestScore = -Infinity
             let bestVersionId = null
+            let bestVersionDate = new Date(0)
 
             for(let version of road.versions){
-                //hitung usia dalam hari
-                const ageInMs = Date.now() - new Date(version.createdAt).getTime()
-                const ageInDays = ageInMs / (1000*60*60*24)
-
-                // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
-                const baseVote = (version.approveCount - version.rejectCount) + 1
-                const divisor = Math.pow(ageInDays + 1, gravitation)
-                const decayScore = baseVote / divisor
-
+                let decayScore
+                //jika sudah terverifikasi, ubah skor menjadi sangat besar
+                if(version.isVerified){
+                    decayScore = 9999
+                }
+                else{
+                    //hitung usia dalam hari
+                    const ageInMs = Date.now() - new Date(version.createdAt).getTime()
+                    const ageInDays = ageInMs / (1000*60*60*24)
+                    // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
+                    const baseVote = (version.approveCount - version.rejectCount) + 1
+                    const divisor = Math.pow(ageInDays + 1, gravitation)
+                    decayScore = baseVote / divisor
+                }
                 await version.update({
                     score: decayScore
                 })
 
-                if(version.approveCount >= 3 && decayScore > highestScore && !version.isHidden){
-                    highestScore = decayScore
-                    bestVersionId = version.id
+                const isEligible = (version.approveCount >= 3 || version.isVerified) && !version.isHidden
+
+                if(isEligible){
+                    if(decayScore > highestScore){
+                        highestScore = decayScore
+                        bestVersionId = version.id
+                        bestVersionDate = new Date(version.createdAt)
+                    }
+                    //jika skor sama, ambil yang terbaru
+                    else if(decayScore == highestScore){
+                        const currVersionDate = new Date(version.createdAt)
+                        if(currVersionDate > bestVersionDate){
+                            bestVersionId = version.id
+                            bestVersionDate = currentVersionDate
+                        }
+                    }
                 }
             }
 
