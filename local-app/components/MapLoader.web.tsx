@@ -116,7 +116,7 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                     position={[parseFloat(targetLocation.latitude), parseFloat(targetLocation.longitude)]}
                 >
                     <Popup>
-                        <b>Titik Pilihan</b> <br />
+                        <b>Titik Pilihan</b> <br/>
                         {targetLocation.name || ""}
                     </Popup>
                 </Marker>

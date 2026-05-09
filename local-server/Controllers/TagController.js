@@ -31,7 +31,7 @@ async function addNewTagVersion(req, res){
         const userId = req.user.id
         const {tagRoadId, status, description} = req.body
         const images = req.files || []
-        let versionResult = await createTagVersion(tagRoadId, userId, status, description, images)
+        let versionResult = await createTagVersion(tagRoadId, userId, status, description, images, req.user.role == 'admin')
 
         return res.status(versionResult.status).json(versionResult)
     }
@@ -90,7 +90,7 @@ async function removeComment(req, res){
             });
         }
         const commentId = req.params.commentId
-        const result = await deleteTagComment(commentId)
+        const result = await deleteTagComments(commentId)
         return res.status(result.status).json(result)
     }
     catch(error){
