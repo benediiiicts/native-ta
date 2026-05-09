@@ -1,10 +1,11 @@
 import { tagRoads, tagVersions } from '../Models/TagModel.js';
 import { user, userVotes } from '../Models/UserModel.js';
 import { versionImages, comments } from '../Models/MediaModel.js';
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
 import cron from 'node-cron';
 import sequelize from "../database.js";
 import { saveImages } from "./MediaService.js";
+import { scopeRenamedToWithScope } from '@sequelize/core/_non-semver-use-at-your-own-risk_/utils/deprecations.js';
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
@@ -269,7 +270,7 @@ async function getAllTags(_userId=null, _includeHidden="false"){
 }
 
 //TAG VERSION
-async function createTagVersion(_tagRoadId, _userId, _status, _description, _images){
+async function createTagVersion(_tagRoadId, _userId, _status, _description, _images, _isAdmin=false){
     const tagRoadExist = await getTagRoad(_tagRoadId)
     if(!tagRoadExist){
         return{
@@ -285,8 +286,14 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
                 status: _status,
                 description: _description,
                 score: 0,
-                isVerified: false
+                isVerified: _isAdmin
             }, {transaction: t})
+
+            let roadUpdateData = { updatedAt: new Date() }
+
+            if (_isAdmin) {
+                roadUpdateData.activeVersionId = newVersion.id
+            }
 
             await tagRoads.update(
                 { updatedAt: new Date() }, 
@@ -333,7 +340,7 @@ async function getVersionHistory(_tagId){
                 as: 'author',
                 attributes: ['username', 'id']
             }],
-            order: [['score', 'DESC']]
+            order: [['createdAt', 'DESC']]
         })
 
         return{
@@ -440,8 +447,8 @@ async function voteTagVersion(_userId, _tagId, _voteType){
             const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
             // Rumus time decay: (Approve - Reject) / (Age + 1)^1.5
-            const baseVotes = (version.approveCount - version.rejectCount);
-            const newScore = baseVotes / Math.pow((ageInDays + 1), 1.5);
+            const baseVote = Math.max(0, (version.approveCount - version.rejectCount)) + 1
+            const newScore = baseVote / Math.pow((ageInDays + 1), 1.5);
 
             await version.update({ score: newScore }, { transaction: t });
 
@@ -491,70 +498,129 @@ async function countRelevanceScore(){
     try{
         console.log(`[CRON JOB] Calculating scores using time decay`)
 
-        const roads = await tagRoads.findAll({
-            where: {isHidden: false},
-            include: [
-                {
-                    model: tagVersions,
-                    as: 'versions'
-                }
-            ]
-        })
-
         const gravitation = 1.5
-        for(let road of roads){
-            if(!road.versions || road.versions.length == 0) continue
-            
-            let highestScore = -Infinity
-            let bestVersionId = null
-            let bestVersionDate = new Date(0)
+        let offset = 0
+        let processed = 0
 
-            for(let version of road.versions){
-                let decayScore
-                //jika sudah terverifikasi, ubah skor menjadi sangat besar
-                if(version.isVerified){
-                    decayScore = 9999
-                }
-                else{
-                    //hitung usia dalam hari
-                    const ageInMs = Date.now() - new Date(version.createdAt).getTime()
-                    const ageInDays = ageInMs / (1000*60*60*24)
-                    // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
-                    const baseVote = (version.approveCount - version.rejectCount) + 1
-                    const divisor = Math.pow(ageInDays + 1, gravitation)
-                    decayScore = baseVote / divisor
-                }
-                await version.update({
-                    score: decayScore
-                })
+        const BATCH_SIZE = 500 
 
-                const isEligible = (version.approveCount >= 3 || version.isVerified) && !version.isHidden
-
-                if(isEligible){
-                    if(decayScore > highestScore){
-                        highestScore = decayScore
-                        bestVersionId = version.id
-                        bestVersionDate = new Date(version.createdAt)
+        while(true){
+            const roads = await tagRoads.findAll({
+                where: {isHidden: false},
+                limit: BATCH_SIZE,
+                offset: offset,
+                include: [
+                    {
+                        model: tagVersions,
+                        as: 'versions'
                     }
-                    //jika skor sama, ambil yang terbaru
-                    else if(decayScore == highestScore){
-                        const currVersionDate = new Date(version.createdAt)
-                        if(currVersionDate > bestVersionDate){
+                ]
+            })
+
+            if(roads.length == 0) break
+
+            const versionUpdates = []
+            const roadUpdates = []
+            const roadHideUpdates = []
+
+            for(let road of roads){
+                if(!road.versions || road.versions.length == 0) continue
+                
+                let highestScore = -Infinity
+                let bestVersionId = null
+                let bestVersionDate = new Date(0)
+
+                for(let version of road.versions){
+                    let decayScore
+                    //jika sudah terverifikasi, ubah skor menjadi sangat besar
+                    if(version.isVerified){
+                        decayScore = 9999
+                    }
+                    else{
+                        //hitung usia dalam hari
+                        const ageInMs = Date.now() - new Date(version.createdAt).getTime()
+                        const ageInDays = ageInMs / (1000*60*60*24)
+                        // Rumus Time Decay: ( (A - R) + 1 ) / (Age + 1)^1.5
+                        const baseVote = Math.max(0, (version.approveCount - version.rejectCount)) + 1
+                        const divisor = Math.pow(ageInDays + 1, gravitation)
+                        decayScore = baseVote / divisor
+                    }
+                    
+                    versionUpdates.push({id: version.id, score: decayScore})
+
+                    const isEligible = (version.approveCount >= 3 || version.isVerified) && !version.isHidden
+
+                    if(isEligible){
+                        if(decayScore > highestScore){
+                            highestScore = decayScore
                             bestVersionId = version.id
-                            bestVersionDate = currentVersionDate
+                            bestVersionDate = new Date(version.createdAt)
+                        }
+                        //jika skor sama, ambil yang terbaru
+                        else if(decayScore == highestScore){
+                            const currVersionDate = new Date(version.createdAt)
+                            if(currVersionDate > bestVersionDate){
+                                bestVersionId = version.id
+                                bestVersionDate = currVersionDate
+                            }
                         }
                     }
                 }
+
+                if(bestVersionId && road.activeVersionId !== bestVersionId){
+                    roadUpdates.push({ id: road.id, activeVersionId: bestVersionId })                    
+                }
+
+                const activeVersionIdCheck = bestVersionId || road.activeVersionId
+                const activeVersionCheck = road.versions.find((v) =>{
+                    return v.id == activeVersionIdCheck
+                })
+
+                if(activeVersionCheck){
+                    const isResolved = activeVersionCheck.status == 'Sudah Diperbaiki' || activeVersionCheck.status == 'Kedaluwarsa / Tidak Valid'
+                    const dateDiff = (Date.now() - new Date(activeVersionCheck.createdAt).getTime()) / (1000*60*60*24)
+
+                    if(isResolved && activeVersionCheck.status == 'Sudah Diperbaiki'){
+                        //jika versi utama menunjukkan jalan sudah diperbaiki
+                        //beri waktu 1 minggu sebelum tag disembunyikan
+                        if(dateDiff >= 7){
+                            roadHideUpdates.push(road.id)
+                        }
+                    }
+                    else if(dateDiff >= 60 && activeVersionCheck.approveCount < 3 && !activeVersionCheck.isVerified){
+                        roadHideUpdates.push(road.id)
+                    }
+                }
             }
 
-            if(bestVersionId && road.activeVersionId !== bestVersionId){
-                await road.update({
-                    activeVersionId: bestVersionId
-                })
-                console.log(`[CRON JOB] Road: ${road.id}'s version changed to: ${bestVersionId}`);
+            if (versionUpdates.length > 0) {
+                await Promise.all(
+                    versionUpdates.map((v) => {
+                        return tagVersions.update({score: v.score}, {where: {id: v.id}})
+                    })
+                )
             }
+
+            if(roadUpdates.length > 0){
+                await Promise.all(
+                    roadUpdates.map((r) => {
+                        return tagRoads.update({activeVersionId: r.activeVersionId}, {where: {id: r.id}})
+                    })
+                )
+            }
+
+            if(roadHideUpdates.length > 0){
+                await tagRoads.update(
+                    {isHidden: true},
+                    {where: {id: {[Op.in]: roadHideUpdates}}}
+                )
+                console.log(`[CRON JOB] ${roadHideUpdates.length} roads automatically hidden`);
+            }
+
+            processed += roads.length
+            console.log(`[CRON JOB] Processed ${processed} roads...`)
+            offset += BATCH_SIZE
         }
-        console.log("[CRON JOB] Time decay cron job FINISHED");
     }
     catch(error){
         console.error(`[CRON JOB] Error while calculating time decay: ${error}`)
