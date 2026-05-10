@@ -580,14 +580,24 @@ async function countRelevanceScore(){
                     const isResolved = activeVersionCheck.status == 'Sudah Diperbaiki' || activeVersionCheck.status == 'Kedaluwarsa / Tidak Valid'
                     const dateDiff = (Date.now() - new Date(activeVersionCheck.createdAt).getTime()) / (1000*60*60*24)
 
-                    if(isResolved && activeVersionCheck.status == 'Sudah Diperbaiki'){
-                        //jika versi utama menunjukkan jalan sudah diperbaiki
-                        //beri waktu 1 minggu sebelum tag disembunyikan
-                        if(dateDiff >= 7){
+                    //jika versi utama menunjukkan jalan sudah diperbaiki
+                    //beri waktu 1 minggu sebelum tag disembunyikan
+                    if(isResolved){
+                        if(activeVersionCheck.status == 'Sudah Diperbaiki' && dateDiff >= 7){
+                            roadHideUpdates.push(road.id)
+                        }
+                        else if(activeVersionCheck.status == 'Kedaluwarsa / Tidak Valid'){
                             roadHideUpdates.push(road.id)
                         }
                     }
-                    else if(dateDiff >= 60 && activeVersionCheck.approveCount < 3 && !activeVersionCheck.isVerified){
+                    //jika versi utama sudah berumur lebih dari 1 bulan
+                    //dan belum mendapakan > 3 approve vote
+                    else if(dateDiff >= 30 && activeVersionCheck.approveCount < 3 && !activeVersionCheck.isVerified){
+                        roadHideUpdates.push(road.id)
+                    }
+                    //jika suatu tag sudah berumur lebih dari 2 bulan
+                    //dan belum mendapatkan update versi (tentunya belum resovle)
+                    else if(dateDiff >= 60){
                         roadHideUpdates.push(road.id)
                     }
                 }
