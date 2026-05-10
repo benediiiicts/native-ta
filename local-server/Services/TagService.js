@@ -589,7 +589,7 @@ async function countRelevanceScore(){
                         else if(activeVersionCheck.status == 'Kedaluwarsa / Tidak Valid'){
                             roadHideUpdates.push(road.id)
                         }
-                    }
+                    }  
                     //jika versi utama sudah berumur lebih dari 1 bulan
                     //dan belum mendapakan > 3 approve vote
                     else if(dateDiff >= 30 && activeVersionCheck.approveCount < 3 && !activeVersionCheck.isVerified){
