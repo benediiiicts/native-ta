@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Platform, Modal, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Platform, Modal, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
@@ -78,6 +78,10 @@ function ManageReports() {
     const [manageUserVisible, setManageUserVisible] = useState(false);
     const [manageUserId, setManageUserId] = useState<number | null>(null);
 
+    const [notesModalVisible, setNotesModalVisible] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'Resolved' | 'Rejected' | null>(null);
+    const [adminNotesInput, setAdminNotesInput] = useState('');
+
     const [warning, setWarning] = useState({ visible: false, title: '', message: '' });
 
     useEffect(() => {
@@ -140,6 +144,25 @@ function ManageReports() {
         } catch (error) {
             console.error(error);
             setWarning({ visible: true, title: "Error", message: "Gagal mengupdate status laporan." });
+        }
+    }
+
+    function defaultAdminNotes(action: 'Resolved' | 'Rejected'){
+        setPendingAction(action)
+        setAdminNotesInput(
+            action === 'Resolved' 
+            ? 'Laporan telah diverifikasi dan ditindaklanjuti.' 
+            : 'Laporan ditolak karena informasi tidak valid atau kurang bukti.'
+        )
+        setNotesModalVisible(true)
+    }
+
+    function confirmStatusUpdate(){
+        if(selectedReport && pendingAction){
+            handleUpdateStatus(selectedReport.id, pendingAction, adminNotesInput)
+            setNotesModalVisible(false)
+            setPendingAction(null)
+            setAdminNotesInput('')
         }
     }
 
@@ -315,7 +338,7 @@ function ManageReports() {
                                     <View style={styles.resolveRejectRow}>
                                         <TouchableOpacity 
                                             style={[styles.actionBtn, styles.btnResolve]} 
-                                            onPress={() => handleUpdateStatus(selectedReport.id, 'Resolved', 'Laporan telah ditindaklanjuti.')}
+                                            onPress={() => defaultAdminNotes('Resolved')}
                                         >
                                             <Ionicons name="checkmark-circle-outline" size={18} color="white" />
                                             <Text style={styles.actionBtnText}>Selesai (Resolve)</Text>
@@ -323,7 +346,7 @@ function ManageReports() {
 
                                         <TouchableOpacity 
                                             style={[styles.actionBtn, styles.btnReject]} 
-                                            onPress={() => handleUpdateStatus(selectedReport.id, 'Rejected', 'Laporan ditolak karena tidak valid.')}
+                                            onPress={() => defaultAdminNotes('Rejected')}
                                         >
                                             <Ionicons name="close-circle-outline" size={18} color="white" />
                                             <Text style={styles.actionBtnText}>Tolak (Reject)</Text>
@@ -379,6 +402,52 @@ function ManageReports() {
                         {previewImage && (
                             <Image source={{ uri: previewImage }} style={styles.fullImage} resizeMode="contain" />
                         )}
+                    </View>
+                </Modal>
+
+                <Modal visible={notesModalVisible} transparent={true} animationType="fade">
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                        <View style={{ backgroundColor: 'white', width: '100%', borderRadius: 12, padding: 20 }}>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#1F2937' }}>
+                                Catatan Admin ({pendingAction === 'Resolved' ? 'Resolve' : 'Reject'})
+                            </Text>
+                            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 15 }}>
+                                Tambahkan catatan untuk pelapor mengenai aksi ini.
+                            </Text>
+                            
+                            <TextInput
+                                style={{
+                                    borderWidth: 1,
+                                    borderColor: '#D1D5DB',
+                                    borderRadius: 8,
+                                    padding: 12,
+                                    minHeight: 100,
+                                    textAlignVertical: 'top',
+                                    color: '#374151'
+                                }}
+                                multiline
+                                numberOfLines={4}
+                                value={adminNotesInput}
+                                onChangeText={setAdminNotesInput}
+                                placeholder="Masukkan alasan di sini..."
+                            />
+
+                            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 10 }}>
+                                <TouchableOpacity 
+                                    style={{ paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8, backgroundColor: '#F3F4F6' }}
+                                    onPress={() => setNotesModalVisible(false)}
+                                >
+                                    <Text style={{ color: '#4B5563', fontWeight: 'bold' }}>Batal</Text>
+                                </TouchableOpacity>
+                                
+                                <TouchableOpacity 
+                                    style={{ paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8, backgroundColor: pendingAction === 'Resolved' ? '#10B981' : '#EF4444' }}
+                                    onPress={confirmStatusUpdate}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Simpan & Proses</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
                 </Modal>
             </View>
