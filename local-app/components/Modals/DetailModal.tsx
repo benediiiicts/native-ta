@@ -834,7 +834,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                                 <TouchableOpacity onPress={() => {
                                                     handleReport('Comment', comment.id)
                                                 }}>
-                                                    <MaterialIcons name="more-vert" size={20} color="#9CA3AF" />
+                                                    <MaterialIcons name="report" size={20} color="#9CA3AF" />
                                                 </TouchableOpacity>
                                             )}
                                         </View>

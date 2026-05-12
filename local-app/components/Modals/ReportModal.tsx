@@ -104,6 +104,36 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
                 return;
             }
 
+            if(Platform.OS == 'web'){
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = 'image/jpeg, image/png, image/webp'
+                input.multiple = true
+
+                input.onchange = (e: any) => {
+                    const files = Array.from(e.target.files || [])
+                    const validImages = files.filter((file: any)=> file.type.startsWith('image/'))
+                
+                    if (validImages.length !== files.length) {
+                        showWarning("File Ditolak", "File ditolak karena format tidak didukung. Harap hanya pilih gambar.");
+                    }
+                    if (validImages.length > 0){
+                        setImages((prev: any[]) => {
+                            const slots = 3 - prev.length
+                            const imagesToAdd = validImages.slice(0, slots).map((file:any)=>({
+                                uri: URL.createObjectURL(file),
+                                mimeType: file.type,
+                                fileName: file.name
+                            }))
+                            return [...prev, ...imagesToAdd];
+                        })
+                    }
+                }
+
+                input.click()
+                return
+            }
+
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync()
             if(!permissionResult.granted){
                 showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
@@ -126,7 +156,7 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
                 });
 
                 if (validImages.length !== selectedFiles.length) {
-                    showWarning("File Ditolak", "Beberapa file ditolak karena format tidak didukung.");
+                    showWarning("File Ditolak", "File ditolak karena format tidak didukung.");
                 }
                 setImages([...images, ...validImages]);
             }
@@ -250,8 +280,7 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
             if(jsonResponse.status == 201){
                 showWarning(
                     "Laporan berhasil dikirim", 
-                    "Terima kasih atas kontribusi anda.", 
-                    () => onClose() 
+                    "Terima kasih atas kontribusi anda.",
                 );
             }
             else{
