@@ -42,7 +42,7 @@ function timeDecay(){
     // Urutkan berdasarkan skor tertinggi
     results.sort((a, b) => b.score - a.score);
 
-    console.log("=== TIME DECAY SCORES ===");
+    console.log("\n\n=== TIME DECAY SCORES ===");
     for(let i = 0; i < results.length; i++){
         console.log(`[Rank ${i+1}] ${results[i].name}`);
         console.log(`  Skor     : ${results[i].score.toFixed(4)}`);

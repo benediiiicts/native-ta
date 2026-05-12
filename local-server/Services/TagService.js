@@ -5,7 +5,6 @@ import { Op, where } from "sequelize";
 import cron from 'node-cron';
 import sequelize from "../database.js";
 import { saveImages } from "./MediaService.js";
-import { scopeRenamedToWithScope } from '@sequelize/core/_non-semver-use-at-your-own-risk_/utils/deprecations.js';
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
