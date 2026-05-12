@@ -104,64 +104,76 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
     }
     
     async function pickImage(){
-        if (tempImages.length >= 3) {
-            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
-            return;
-        }
-
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if(!permissionResult.granted){
-            showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
-            return;
-        }
-
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: false,
-            allowsMultipleSelection: true,
-            selectionLimit: 3 - tempImages.length,
-            quality: 0.8,
-        })
-
-        if (!result.canceled) {
-            const selectedFiles = result.assets;
-            const validImages = selectedFiles.filter(file => {
-                const mimeType = file.mimeType || 'image/jpeg';
-                return mimeType.startsWith('image/');
-            });
-
-            if (validImages.length !== selectedFiles.length) {
-                showWarning("File Ditolak", "Beberapa file ditolak karena format tidak didukung.");
+        try{
+            if (tempImages.length >= 3) {
+                showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
+                return;
             }
-            setTempImages([...tempImages, ...validImages]);
+
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if(!permissionResult.granted){
+                showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
+                return;
+            }
+
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                allowsMultipleSelection: true,
+                selectionLimit: 3 - tempImages.length,
+                quality: 0.8,
+            })
+
+            if (!result.canceled) {
+                const selectedFiles = result.assets;
+                const validImages = selectedFiles.filter(file => {
+                    const mimeType = file.mimeType || 'image/jpeg';
+                    return mimeType.startsWith('image/');
+                });
+
+                if (validImages.length !== selectedFiles.length) {
+                    showWarning("File Ditolak", "Beberapa file ditolak karena format tidak didukung.");
+                }
+                setTempImages([...tempImages, ...validImages]);
+            }
+        }
+        catch(error){
+            console.error(error);
+            showWarning("Gagal Membuka File", "Terjadi kesalahan saat memproses file. Pastikan Anda hanya memilih file berupa gambar.")
         }
     }
 
     async function takePhoto(){
-        if (tempImages.length >= 3) {
-            showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
-            return;
-        }
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
-        if(!permissionResult.granted){
-            showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
-            return;
-        }
-        let result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ['images'],
-            allowsEditing: false,
-            aspect: [4, 3],
-            quality: 0.8,
-        })
-        if(!result.canceled){
-            const capturedFile = result.assets[0]
-            const mimeType = capturedFile.mimeType || 'image/jpeg';
-            if (!mimeType.startsWith('image/')) {
-                showWarning("File Ditolak", "Format file tidak didukung.");
+        try{
+            if (tempImages.length >= 3) {
+                showWarning("Batas Maksimal", "Hanya boleh mengunggah maksimal 3 gambar.");
                 return;
             }
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync()
+            if(!permissionResult.granted){
+                showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan untuk mengunggah foto.');
+                return;
+            }
+            let result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                aspect: [4, 3],
+                quality: 0.8,
+            })
+            if(!result.canceled){
+                const capturedFile = result.assets[0]
+                const mimeType = capturedFile.mimeType || 'image/jpeg';
+                if (!mimeType.startsWith('image/')) {
+                    showWarning("File Ditolak", "Format file tidak didukung.");
+                    return;
+                }
 
-            setTempImages([...tempImages, capturedFile]);
+                setTempImages([...tempImages, capturedFile]);
+            }
+        }
+        catch(error){
+            console.error(error);
+            showWarning("Gagal Mengambil Foto", "Terjadi kesalahan saat memproses file. Pastikan Anda hanya memilih file berupa gambar.")
         }
     }
 

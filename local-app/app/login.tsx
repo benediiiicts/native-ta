@@ -84,7 +84,7 @@ function Login() {
         }, 
         discovery
     )
-
+    
     useEffect(()=>{
         if(response?.type == 'success'){
             const { access_token } = response.params
@@ -272,7 +272,7 @@ function Login() {
                     disabled={!request || isLoading}
                 >
                     <Ionicons name="logo-google" size={20} color="#4B5563" style={{ marginRight: 10 }} />
-                    <Text style={styles.googleButtonText}>Login dengan Google</Text>
+                    <Text style={styles.googleButtonText}>Masuk dengan Google</Text>
                 </TouchableOpacity>
                 
                 <View style={styles.footerContainer}>

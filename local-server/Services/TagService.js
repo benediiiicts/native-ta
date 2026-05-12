@@ -5,7 +5,6 @@ import { Op, where } from "sequelize";
 import cron from 'node-cron';
 import sequelize from "../database.js";
 import { saveImages } from "./MediaService.js";
-import { scopeRenamedToWithScope } from '@sequelize/core/_non-semver-use-at-your-own-risk_/utils/deprecations.js';
 
 async function checkRoadRadius(_latitude, _longitude){
     const earthRadius = 6371000
@@ -589,7 +588,7 @@ async function countRelevanceScore(){
                         else if(activeVersionCheck.status == 'Kedaluwarsa / Tidak Valid'){
                             roadHideUpdates.push(road.id)
                         }
-                    }
+                    }  
                     //jika versi utama sudah berumur lebih dari 1 bulan
                     //dan belum mendapakan > 3 approve vote
                     else if(dateDiff >= 30 && activeVersionCheck.approveCount < 3 && !activeVersionCheck.isVerified){

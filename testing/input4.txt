@@ -1,0 +1,5 @@
+Jalan-D 100 0 30 false
+Jalan-D 200 0 60 false
+Jalan-D 0 0 0 false
+Jalan-D 1 0 0 false
+Jalan-D 0 0 1 false
