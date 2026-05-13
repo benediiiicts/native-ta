@@ -154,7 +154,9 @@ function ManageReports() {
             ? 'Laporan telah diverifikasi dan ditindaklanjuti.' 
             : 'Laporan ditolak karena informasi tidak valid atau kurang bukti.'
         )
-        setNotesModalVisible(true)
+        setTimeout(() => {
+            setNotesModalVisible(true)
+        }, 150)
     }
 
     function confirmStatusUpdate(){
@@ -304,12 +306,12 @@ function ManageReports() {
                                     </View>
                                 </View>
 
-                                <View style={styles.descriptionSection}>
+                                <ScrollView style={styles.descriptionSection}>
                                     <Text style={styles.infoLabel}>Description:</Text>
                                     <View style={styles.descriptionBox}>
                                         <Text style={styles.descriptionText}>{selectedReport.description || 'Tidak ada deskripsi tambahan.'}</Text>
                                     </View>
-                                </View>
+                                </ScrollView>
                             </ScrollView>
 
                             <View style={styles.modalFooter}>

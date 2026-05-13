@@ -281,7 +281,12 @@ function ReportModal({visible, onClose, targetType, targetId, targetName}: Repor
                 showWarning(
                     "Laporan berhasil dikirim", 
                     "Terima kasih atas kontribusi anda.",
-                );
+                )
+
+                setTimeout(() => {
+                    setWarningVisible(false)
+                    onClose()
+                }, 2000)
             }
             else{
                 showWarning("Gagal", jsonResponse.message || "Terjadi kesalahan pada server")
