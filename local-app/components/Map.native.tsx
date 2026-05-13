@@ -45,6 +45,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
     //untuk grouping tag
     const [stackedTagsModal, setStackedTagsModal] = useState<{visible: boolean, tags: any[]}>({visible: false, tags: []});
     let mapRef = useRef<MapView>(null)
+    let currentRegionRef = useRef<Region | null>(null)
 
     useEffect(()=>{
         if(!active){
@@ -57,6 +58,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
 
     function handleRegionChange(region: Region) {
         //untuk track zoom saat ini
+        currentRegionRef.current = region
         const zoom = Math.round(Math.log(360 / region.longitudeDelta) / Math.LN2);
         setCurrentZoom(zoom);
         if(active){
@@ -102,9 +104,12 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
     
     useEffect(()=>{
         if(active && mapRef.current){
+            const targetLat = currentRegionRef.current ? currentRegionRef.current.latitude : currentUserLocation.latitude;
+            const targetLon = currentRegionRef.current ? currentRegionRef.current.longitude : currentUserLocation.longitude;
+
             mapRef.current.animateToRegion({
-                    latitude: currentUserLocation.latitude,
-                    longitude: currentUserLocation.longitude,
+                    latitude: targetLat,
+                    longitude: targetLon,
                     latitudeDelta: 0.002,
                     longitudeDelta: 0.002,
             }, 1000)

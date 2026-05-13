@@ -76,6 +76,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
     const [isReloadingComments, setIsReloadingComments] = useState(false);
     const [tempCommentImage, setTempCommentImage] = useState<any>(null);
+    const [commentExpanded, setCommentExpanded] = useState<{num: number, status: boolean} | null>(null)
 
     //untuk version history
     const [historyMode, setHistoryMode] = useState(false);
@@ -91,6 +92,9 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
     const [reportTargetType, setReportTargetType] = useState<'User' | 'TagVersion' | 'Comment' | null>(null);
     const [reportTargetId, setReportTargetId] = useState<number | null>(null);
     const [reportTargetName, setReportTargetName] = useState<string>('');
+
+    //untuk deskripsi
+    const [descExpanded, setDescExpanded] = useState(false)
 
     //untuk nama jalan
     const [roadName, setRoadName] = useState("Memuat Lokasi...");
@@ -406,6 +410,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
     }
 
     function handleClose (){
+        setDescExpanded(false)
         setCommentMode(false);
         setHistoryMode(false);
         onClose();
@@ -432,6 +437,9 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
 
         const currentUserVote = tagData?.currentUserVote
 
+        const descIsLong = (activeVersion.description?.length ?? 0) > 200 
+            || (activeVersion.description?.split('\n').length ?? 0) > 3
+
         return (
             <>
             <View 
@@ -449,6 +457,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                     showsHorizontalScrollIndicator={false}
                     onScroll={handleScroll}
                     scrollEventThrottle={16}
+                    persistentScrollbar={true}
                     style={{ flex: 1, width: '100%' }}  
                     contentContainerStyle={{ flexGrow: 1, flexDirection: 'row' }}
                 >
@@ -534,7 +543,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
 
                 <View style={styles.badgeContainer}>
                     <View style={styles.roadNameBadge}>
-                        <Text style={styles.roadNameBadgeText}>{roadName}</Text>
+                        <Text style={styles.roadNameBadgeText} numberOfLines={1}>{roadName}</Text>
                     </View>
 
                     <View style={styles.statusBadgeRow}>
@@ -594,13 +603,13 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
                     <Text style={{ fontSize: 15, color: "#4B5563" }}>Dilaporkan oleh: </Text>
-                    <TouchableOpacity onPress={() => {
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => {
                         if (activeVersion.author?.id) {
                             setSelectedUserId(activeVersion.author.id);
                             setProfileModalVisible(true);
                         }
                     }}>
-                        <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#3B82F6' }}>
+                        <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#3B82F6' }} numberOfLines={1}>
                             {activeVersion.author?.username || 'Anonymous'}
                         </Text>
                     </TouchableOpacity>
@@ -608,7 +617,19 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
 
                 <Text style={styles.descLabel}>Description:</Text>
                 <View style={styles.descBox}>
-                    <Text style={styles.descText}>{activeVersion.description}</Text>
+                    <Text
+                        style={styles.descText}
+                        numberOfLines={descExpanded ? undefined : 4}
+                    >
+                        {activeVersion.description}
+                    </Text>
+                    {descIsLong && (
+                        <TouchableOpacity onPress={() => setDescExpanded(prev => !prev)}>
+                            <Text style={{ color: '#3B82F6', fontSize: 13, marginTop: 4 }}>
+                                {descExpanded ? 'Show less' : 'Show more'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <View style={styles.approvalRow}>
@@ -701,8 +722,8 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                         <Text style={styles.statusText}>{ver.status} {isHiddenMark && "(Hidden)"}</Text>
                     </View>
                     <View style={styles.cardBody}>
-                        <View>
-                            <Text style={styles.authorText}>Created by {ver.author?.username}</Text>
+                        <View style={{ flex: 1, marginRight: 10 }}>
+                            <Text style={styles.authorText} numberOfLines={1}>Created by {ver.author?.username}</Text>
                             <Text style={styles.dateText}>{new Date(ver.createdAt).toLocaleDateString('id-ID')}</Text>
                         </View>
                         <View style={styles.voteContainer}>
@@ -717,13 +738,13 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
         return(
             <View style={styles.flex1}>
                 <View style={styles.commentHeader}>
-                    <View style={styles.roadNamePill}><Text style={styles.roadNameText}>{roadName}</Text></View>
+                    <View style={styles.roadNamePill}><Text style={styles.roadNameText} numberOfLines={1}>{roadName}</Text></View>
                     <TouchableOpacity onPress={() => setHistoryMode(false)}>
                         <Ionicons name="close-circle" size={32} color="#4B5563" />
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ScrollView contentContainerStyle={styles.contentContainer} persistentScrollbar={true}>
                     {isLoadingHistory ? (
                         <Text style={styles.centerMessageText}>Memuat riwayat...</Text>
                     ) : (
@@ -780,7 +801,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                     </View>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ScrollView contentContainerStyle={styles.contentContainer} persistentScrollbar={true}>
                     <View style={styles.commentInputContainer}>
                         <TextInput
                             style={styles.commentTextInput}
@@ -815,14 +836,14 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                 return (
                                     <View key={index} style={styles.commentItemWrapper}>
                                         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                                            <TouchableOpacity onPress={()=>{
+                                            <TouchableOpacity style={{ flex: 1, marginRight: 10 }} onPress={()=>{
                                                 const authorId = comment.commentAuthor?.id
                                                 if(authorId){
                                                     setSelectedUserId(authorId);
                                                     setProfileModalVisible(true);
                                                 }
                                             }}>
-                                                <Text style={styles.commentAuthorText}>
+                                                <Text style={styles.commentAuthorText} numberOfLines={1}>
                                                     {comment.commentAuthor?.username || 'Anonymous'}
                                                 </Text>
                                             </TouchableOpacity>
@@ -838,10 +859,25 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                                 </TouchableOpacity>
                                             )}
                                         </View>
-                                        <Text style={styles.commentContentText}>
-                                            {comment.content}
-                                        </Text>
-                                        
+                                        <View style={{ marginVertical: 5 }}>
+                                            <Text 
+                                                style={[styles.commentContentText, { marginTop: 0 }]}
+                                                numberOfLines={commentExpanded?.num === index && commentExpanded?.status ? undefined : 4}
+                                            >
+                                                {comment.content}
+                                            </Text>
+                                            {((comment.content?.length ?? 0) > 200 || (comment.content?.split('\n').length ?? 0) > 3) && (
+                                                <TouchableOpacity onPress={() => setCommentExpanded(
+                                                    commentExpanded?.num === index && commentExpanded?.status
+                                                        ? { num: index, status: false }
+                                                        : { num: index, status: true }
+                                                )}>
+                                                    <Text style={{ color: '#3B82F6', fontSize: 13, marginTop: 4 }}>
+                                                        {commentExpanded?.num === index && commentExpanded?.status ? 'Show less' : 'Show more'}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>                        
                                         {commentImage && (
                                             <Image 
                                                 source={{ uri: commentImage }} 
