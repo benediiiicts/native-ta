@@ -193,14 +193,12 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                         longitude: pos.lon
                     }));
 
-                    let roadName = 'Unknown';
+                    let roadName = 'Unknown'
+                    
                     let roadClass = 'Unclassified'
                     if(way.tags){
-                        if(way.tags.name){
-                            roadName = way.tags.name   
-                        }
                         if(way.tags.highway){
-                            roadClass = way.tags.highway;
+                            roadClass = way.tags.highway
                         }
                     }
 
@@ -212,8 +210,29 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                             strokeWidth={5}
                             zIndex={2}
                             tappable={true} 
-                            onPress={(e) => {
+                            onPress={async (e) => {
                                 if (active && onRoadSelect) {
+                                    try{
+                                        const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
+                                        const lat = e.nativeEvent.coordinate?.latitude
+                                        const lon = e.nativeEvent.coordinate?.longitude
+                                        const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+                            
+                                        let requestHeaders: any = {
+                                            'Accept': 'application/json'
+                                        }
+                                        const response = await fetch(apiUrl, {
+                                            headers: requestHeaders
+                                        })
+                                        const jsonResponse = await response.json()
+                                        if(jsonResponse && jsonResponse.address){
+                                            const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"
+                                            roadName = name
+                                        }
+                                    }
+                                    catch(error){
+                                        console.error(`Error while fetching road name: ${error}`)
+                                    }
                                     onRoadSelect({
                                         id: way.id,
                                         name: roadName,
