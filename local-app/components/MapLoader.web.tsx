@@ -75,10 +75,7 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
 
                 let roadName = 'Unknown'
                 let roadClass = 'Unclassified'
-                if(way.tags && way.tags.name){
-                    if(way.tags.name){
-                        roadName = way.tags.name
-                    }
+                if(way.tags){
                     if(way.tags.highway){
                         roadClass = way.tags.highway
                     }
@@ -95,7 +92,30 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                             interactive: true 
                         }}
                         eventHandlers={{
-                            click: (e) => {
+                            click: async (e) => {
+                                try{
+                                    const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
+                                    const lat = e.latlng.lat
+                                    const lon = e.latlng.lng
+                                    const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+                        
+                                    let requestHeaders: any = {
+                                        'Accept': 'application/json'
+                                    }
+                                    requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`
+                                    const response = await fetch(apiUrl, {
+                                        headers: requestHeaders
+                                    })
+                                    const jsonResponse = await response.json()
+                                    if(jsonResponse && jsonResponse.address){
+                                        const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"
+                                        roadName = name
+                                    }
+                                }
+                                catch(error){
+                                    console.error(`Error while fetching road name: ${error}`)
+                                }
+                                
                                 console.log("Garis jalan ditekan!", roadName);
                                 if(onRoadSelect){
                                     onRoadSelect({
