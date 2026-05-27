@@ -1,5 +1,5 @@
-Jalan-B 10 0 1 false
-Jalan-B 0 10 1 false
-Jalan-B 6 5 1 false
-Jalan-B 5 6 1 false
-Jalan-B 20 20 5 false
+Versi-1 10 0 1 false
+Versi-2 0 10 1 false
+Versi-3 6 5 1 false
+Versi-4 5 6 1 false
+Versi-5 20 20 5 false

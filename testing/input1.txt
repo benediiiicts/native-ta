@@ -1,6 +1,6 @@
-Jalan-A 0 0 0 false
-Jalan-A 3 0 0 false
-Jalan-A 5 0 2 false
-Jalan-A 10 1 7 false
-Jalan-A 50 5 30 false
-Jalan-A 100 10 60 false
+Versi-1 0 0 0 false
+Versi-2 3 0 0 false
+Versi-3 5 0 2 false
+Versi-4 10 1 7 false
+Versi-5 50 5 30 false
+Versi-6 100 10 60 false

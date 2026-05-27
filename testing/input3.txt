@@ -1,5 +1,5 @@
-Jalan-C 1000 0 1 false
-Jalan-C 500 10 10 false
-Jalan-C 0 0 0 true
-Jalan-C 0 50 2 true
-Jalan-C 10 0 100 true
+Versi-1 1000 0 1 false
+Versi-2 500 10 10 false
+Versi-3 0 0 0 true
+Versi-4 0 50 2 true
+Versi-5 10 0 100 true

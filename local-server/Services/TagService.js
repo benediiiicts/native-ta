@@ -74,7 +74,7 @@ async function createTagRoad(_userId, _latitude, _longitude, _roadClass, _issueT
                 userId: _userId,
                 status: "Menunggu Tindakan",
                 description: _description,
-                score: 0,
+                score: 1,
                 isVerified: false
             }, {transaction: t})
 
@@ -284,7 +284,7 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
                 userId: _userId,
                 status: _status,
                 description: _description,
-                score: 0,
+                score: 1,
                 isVerified: _isAdmin
             }, {transaction: t})
 

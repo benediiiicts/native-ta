@@ -102,7 +102,6 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                                     let requestHeaders: any = {
                                         'Accept': 'application/json'
                                     }
-                                    requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`
                                     const response = await fetch(apiUrl, {
                                         headers: requestHeaders
                                     })
