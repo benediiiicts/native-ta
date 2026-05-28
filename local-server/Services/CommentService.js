@@ -12,7 +12,7 @@ async function commentTagVersion(_userId, _tagId, _content, _image=null){
             }, {transaction: t})
 
             if(_image && _image.length > 0){    
-                newComment.update({
+                await newComment.update({
                     imageUrl: _image[0].filename
                 }, {transaction: t})
             }

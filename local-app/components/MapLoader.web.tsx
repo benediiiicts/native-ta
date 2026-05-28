@@ -93,36 +93,39 @@ function MapLoader({ active, targetLocation=false, onRoadSelect, tags=[], onTagS
                         }}
                         eventHandlers={{
                             click: async (e) => {
+                                const lat = e.latlng.lat
+                                const lon = e.latlng.lng
+                                let fetchedRoadName = 'Unknown'
+
                                 try{
-                                    const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
-                                    const lat = e.latlng.lat
-                                    const lon = e.latlng.lng
-                                    const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+                                    const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com'
+                                    const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&email=${userEmail}`
                         
                                     let requestHeaders: any = {
                                         'Accept': 'application/json'
                                     }
+                                    
                                     const response = await fetch(apiUrl, {
                                         headers: requestHeaders
                                     })
                                     const jsonResponse = await response.json()
+                                    
                                     if(jsonResponse && jsonResponse.address){
-                                        const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"
-                                        roadName = name
+                                        fetchedRoadName = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unknown";
                                     }
                                 }
                                 catch(error){
                                     console.error(`Error while fetching road name: ${error}`)
                                 }
                                 
-                                console.log("Garis jalan ditekan!", roadName);
+                                console.log("Garis jalan ditekan!", fetchedRoadName);
                                 if(onRoadSelect){
                                     onRoadSelect({
                                         id: way.id,
-                                        name: roadName,
+                                        name: fetchedRoadName,
                                         roadClass: roadClass,
-                                        latitude: e.latlng.lat,
-                                        longitude: e.latlng.lng
+                                        latitude: lat,
+                                        longitude: lon
                                     })
                                 }
                             }

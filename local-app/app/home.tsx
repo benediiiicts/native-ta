@@ -1,17 +1,17 @@
 import AddTagModal from "@/components/Modals/AddTagModal";
 import ConfirmModal from "@/components/Modals/ConfirmationModal";
+import NotificationModal from "@/components/Modals/NotificationModal";
 import UserProfileModal from "@/components/Modals/UserProfileModal";
 import WarningModal from "@/components/Modals/WarningModal";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import { useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Map from '../components/Map';
 import DetailModal from "../components/Modals/DetailModal";
-import NotificationModal from "@/components/Modals/NotificationModal";
 import Navbar from '../components/Navbar';
 
 async function getStorageValue(key: string){
@@ -418,27 +418,27 @@ function Home() {
             <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center', zIndex: 10 }}>
                 {isSelectingLocation ? (
                     <>
-                        <View style={{ marginHorizontal: 5 }}>
-                            <Button
-                                title="Batal"
-                                color="#EF4444"
-                                onPress={()=>{
-                                    setIsSelectingLocation(false)
-                                    setAddModalVisible(false)
-                                    setTempLocation(null)
-                                    setSearchLocation(null)
-                                }}
-                            />
-                        </View>
+                        <TouchableOpacity 
+                            style={{ marginHorizontal: 5, borderRadius: 20, backgroundColor: "#EF4444", padding: 10, alignItems: 'center'}}
+                            onPress={()=>{
+                                setIsSelectingLocation(false)
+                                setAddModalVisible(false)
+                                setTempLocation(null)
+                                setSearchLocation(null)
+                            }}>
+                                <Text style={{ color: 'white', marginLeft: 8, marginRight: 8, fontWeight: 'bold', fontSize: 14 }}>
+                                    Batal
+                                </Text>
+                        </TouchableOpacity>
 
                         {tempLocation && (
-                            <View style={{ marginHorizontal: 5 }}>
-                                <Button
-                                    title="Konfirmasi Lokasi"
-                                    color="#10B981"
-                                    onPress={() => setConfirmLocationVisible(true)}
-                                />
-                            </View>
+                            <TouchableOpacity 
+                                style={{ marginHorizontal: 5, borderRadius: 20, backgroundColor: '#10B981', padding: 10 }}
+                                onPress={() => setConfirmLocationVisible(true)}>
+                                <Text style={{ color: 'white', marginLeft: 8, marginRight: 8, fontWeight: 'bold', fontSize: 14 }}>
+                                    Konfirmasi Lokasi
+                                </Text>
+                            </TouchableOpacity>
                         )}
                     </>
                 ):(

@@ -346,7 +346,7 @@ async function manageReportStatus(_reportId, _status, _adminNotes='', _roadName=
                 title: notifTitle,
                 message: notes,
                 type: notifType,
-                actionType: null
+                actionType: _status.toLowerCase() + '_report'
             }, {transaction: t})
 
             return {

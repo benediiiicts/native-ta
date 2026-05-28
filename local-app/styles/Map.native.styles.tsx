@@ -61,6 +61,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6B7280',
         marginTop: 2
+    },
+    marker:{
+        padding: 6,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+        elevation: 4
     }
 });
 

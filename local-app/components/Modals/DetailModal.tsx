@@ -5,7 +5,8 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from "react";
-import { Dimensions, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import * as ImagePicker from 'expo-image-picker';
+import { Alert, Dimensions, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import AddVersionModal from './AddVersionModal';
 import ReportModal from "./ReportModal";
 import TagManageModal from "./TagManageModal";
@@ -68,6 +69,9 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
     //untuk slide image
     const [activeIndex, setActiveIndex] = useState(0)
     const [sliderWidth, setSliderWidth] = useState(0)
+
+    //untuk preview image
+    const [previewImage, setPreviewImage] = useState<string | null>(null)
 
     //untuk komentar
     const [tagComments, setTagComments] = useState<any[]>([])
@@ -185,6 +189,84 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
         }
         finally{
             setIsReloadingComments(false)
+        }
+    }
+
+    async function pickCommentImage() {
+        try {
+            if (Platform.OS === 'web') {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/jpeg, image/png, image/webp';
+                input.onchange = (e: any) => {
+                    const file = e.target.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                        setTempCommentImage({
+                            uri: URL.createObjectURL(file),
+                            mimeType: file.type,
+                            fileName: file.name
+                        });
+                    }
+                };
+                input.click();
+                return;
+            }
+
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permissionResult.granted) {
+                showWarning('Izin Diperlukan', 'Izin untuk mengakses galeri media diperlukan.');
+                return;
+            }
+
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setTempCommentImage(result.assets[0]);
+            }
+        } catch (error) {
+            console.error(error);
+            showWarning("Gagal", "Terjadi kesalahan saat memproses gambar.");
+        }
+    }
+
+    async function takeCommentPhoto() {
+        try {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissionResult.granted) {
+                showWarning('Izin Diperlukan', 'Izin kamera diperlukan.');
+                return;
+            }
+            let result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.8,
+            });
+            if (!result.canceled) {
+                setTempCommentImage(result.assets[0]);
+            }
+        } catch (error) {
+            console.error(error);
+            showWarning("Gagal", "Terjadi kesalahan kamera.");
+        }
+    }
+
+    function handleAddCommentImage() {
+        if (Platform.OS === 'web') {
+            pickCommentImage();
+        } else {
+            Alert.alert(
+                "Kirim Gambar",
+                "Pilih sumber gambar",
+                [
+                    { text: "Kamera", onPress: takeCommentPhoto },
+                    { text: "Galeri", onPress: pickCommentImage },
+                    { text: "Batal", style: "cancel" }
+                ]
+            );
         }
     }
 
@@ -468,7 +550,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                     ? img.imageUrl 
                                     : `${process.env.EXPO_PUBLIC_API_URL}/uploads/${img.imageUrl}`;
                                 return (
-                                    <View 
+                                    <TouchableOpacity 
                                         key={index} 
                                         style={{ 
                                             width: currentWidth,
@@ -476,13 +558,15 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                             justifyContent: 'center',
                                             alignItems: 'center'
                                         }}
+                                        activeOpacity={0.9}
+                                        onPress={() => setPreviewImage(imageUrl)}
                                     >
                                         <Image
                                             source={{uri: imageUrl}}
                                             style={{ width: '100%', height: '100%', backgroundColor: "#E5E7EB" }} 
                                             contentFit="cover"
                                         />
-                                    </View>
+                                    </TouchableOpacity>
                                 )
                             })
                     ):(
@@ -803,13 +887,34 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
 
                 <ScrollView contentContainerStyle={styles.contentContainer} persistentScrollbar={true}>
                     <View style={styles.commentInputContainer}>
-                        <TextInput
-                            style={styles.commentTextInput}
-                            placeholder="Tulis komentar Anda..."
-                            multiline
-                            value={newComment}
-                            onChangeText={setNewComment}
-                        />
+                        {tempCommentImage && (
+                            <View style={{ position: 'relative', width: 80, height: 80, marginBottom: 10 }}>
+                                <Image source={{ uri: tempCommentImage.uri }} style={{ width: '100%', height: '100%', borderRadius: 8 }} contentFit="cover" />
+                                <TouchableOpacity
+                                    style={{ position: 'absolute', top: -8, right: -8, backgroundColor: 'white', borderRadius: 12 }}
+                                    onPress={() => setTempCommentImage(null)}
+                                >
+                                    <Ionicons name="close-circle" size={24} color="#EF4444" />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                        
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <TextInput
+                                style={[styles.commentTextInput, { flex: 1 }]}
+                                placeholder="Tulis komentar Anda..."
+                                multiline
+                                value={newComment}
+                                onChangeText={setNewComment}
+                            />
+                            <TouchableOpacity 
+                                style={{ padding: 10, marginLeft: 8, backgroundColor: '#F3F4F6', borderRadius: 8 }}
+                                onPress={handleAddCommentImage}
+                            >
+                                <Ionicons name="image-outline" size={24} color="#4B5563" />
+                            </TouchableOpacity>
+                        </View>
+
                         <View style={styles.commentSubmitRow}>
                             <TouchableOpacity 
                                 style={styles.commentSubmitButton}
@@ -879,11 +984,13 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                                             )}
                                         </View>                        
                                         {commentImage && (
-                                            <Image 
-                                                source={{ uri: commentImage }} 
-                                                style={styles.commentImageStyle} 
-                                                contentFit="cover"
-                                            />
+                                            <TouchableOpacity onPress={() => setPreviewImage(commentImage)}>
+                                                <Image 
+                                                    source={{ uri: commentImage }} 
+                                                    style={styles.commentImageStyle} 
+                                                    contentFit="cover"
+                                                />
+                                            </TouchableOpacity>
                                         )}
                                     </View>
                                 )
@@ -978,6 +1085,25 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                     onClose();
                 }}
             />
+
+            <Modal visible={!!previewImage} transparent={true} animationType="fade" onRequestClose={() => setPreviewImage(null)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity 
+                        style={{ position: 'absolute', top: Platform.OS === 'ios' ? 50 : 20, right: 20, zIndex: 10, padding: 10 }} 
+                        onPress={() => setPreviewImage(null)}
+                    >
+                        <Ionicons name="close" size={36} color="white" />
+                    </TouchableOpacity>
+                    
+                    {previewImage && (
+                        <Image 
+                            source={{ uri: previewImage }} 
+                            style={{ width: '100%', height: '80%' }} 
+                            contentFit="contain"
+                        />
+                    )}
+                </View>
+            </Modal>
         </Modal>
     );
 }

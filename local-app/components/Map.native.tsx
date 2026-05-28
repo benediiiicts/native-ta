@@ -212,34 +212,36 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
                             tappable={true} 
                             onPress={async (e) => {
                                 if (active && onRoadSelect) {
+                                    const lat = e.nativeEvent.coordinate?.latitude
+                                    const lon = e.nativeEvent.coordinate?.longitude
+                                    let fetchedRoadName = 'Unknown'
+                                    
                                     try{
-                                        const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com';
-                                        const lat = e.nativeEvent.coordinate?.latitude
-                                        const lon = e.nativeEvent.coordinate?.longitude
+                                        const userEmail = process.env.EXPO_PUBLIC_EMAIL || 'test@example.com'
                                         const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
                             
                                         let requestHeaders: any = {
-                                            'Accept': 'application/json'
+                                            'Accept': 'application/json',
+                                            'User-Agent': `MyTAppDev/1.0 (${userEmail})`
                                         }
-                                        requestHeaders['User-Agent'] = `MyTAppDev/1.0 (${userEmail})`
                                         const response = await fetch(apiUrl, {
                                             headers: requestHeaders
                                         })
                                         const jsonResponse = await response.json()
                                         if(jsonResponse && jsonResponse.address){
-                                            const name = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unkown"
-                                            roadName = name
+                                            fetchedRoadName = jsonResponse.address.road || jsonResponse.address.neighbourhood || jsonResponse.address.village || jsonResponse.address.town || "Unknown";
                                         }
                                     }
                                     catch(error){
                                         console.error(`Error while fetching road name: ${error}`)
                                     }
+
                                     onRoadSelect({
                                         id: way.id,
-                                        name: roadName,
+                                        name: fetchedRoadName,
                                         roadClass: roadClass,
-                                        latitude: e.nativeEvent.coordinate?.latitude,
-                                        longitude: e.nativeEvent.coordinate?.longitude
+                                        latitude: lat,
+                                        longitude: lon
                                     })
                                 }
                             }}

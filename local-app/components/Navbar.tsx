@@ -217,7 +217,7 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                                 onNotificationPress()
                                 setUnreadCount(0)
                             }}
-                            style={{ marginRight: 15, position: 'relative' }}
+                            style={{ marginRight: 15, position: 'relative', backgroundColor: 'white', padding: 8, borderRadius: 8 }}
                         >
                             <Ionicons name="notifications-outline" size={26} color="#4B5563" />
                             {unreadCount > 0 && (
