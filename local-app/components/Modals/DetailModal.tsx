@@ -225,6 +225,11 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
             });
 
             if (!result.canceled) {
+                const mimeType = result.assets[0].mimeType || 'image/jpeg';
+                if (!mimeType.startsWith('image/')) {
+                    showWarning("File Ditolak", "Format file tidak didukung.")
+                    return
+                }
                 setTempCommentImage(result.assets[0]);
             }
         } catch (error) {
@@ -246,6 +251,11 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                 quality: 0.8,
             });
             if (!result.canceled) {
+                const mimeType = result.assets[0].mimeType || 'image/jpeg';
+                if (!mimeType.startsWith('image/')) {
+                    showWarning("File Ditolak", "Format file tidak didukung.")
+                    return
+                }
                 setTempCommentImage(result.assets[0]);
             }
         } catch (error) {
