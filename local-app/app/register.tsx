@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import { KeyboardAvoidingView, ScrollView, View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { styles } from '../styles/LoginRegister.styles';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +35,9 @@ function Register() {
     let [errorMessage, setErrorMessage] = useState('');
     let [successMessage, setSuccessMessage] = useState('');
     let [isLoading, setIsLoading] = useState(false); 
+
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const [request, response, promptAsync] = useAuthRequest(
         {
@@ -161,8 +164,8 @@ function Register() {
         }
     }
 
-    return (
-        <View style={styles.container}>
+    function renderForm(){
+        return(
             <View style={styles.formWrapper}>
                 <View style={styles.headerContainer}>
                     <Text style={styles.headerText}>Welcome</Text>
@@ -200,28 +203,44 @@ function Register() {
 
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Password</Text>
-                    <TextInput 
-                        style={styles.input}
-                        placeholder="••••••••" 
-                        placeholderTextColor="#9CA3AF"
-                        secureTextEntry={true}   
-                        value={password}
-                        onChangeText={setPassword}
-                        editable={!isLoading}
-                    />
+                    <View style={{ position: 'relative', justifyContent: 'center' }}>
+                        <TextInput 
+                            style={styles.input}
+                            placeholder="••••••••" 
+                            placeholderTextColor="#9CA3AF"
+                            secureTextEntry={!showPassword}   
+                            value={password}
+                            onChangeText={setPassword}
+                            editable={!isLoading}
+                        />
+                        <TouchableOpacity 
+                            style={{ position: 'absolute', right: 15 }}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={22} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Confirm Password</Text>
-                    <TextInput 
-                        style={styles.input}
-                        placeholder="••••••••" 
-                        placeholderTextColor="#9CA3AF"
-                        secureTextEntry={true}  
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        editable={!isLoading}
-                    />
+                    <View style={{ position: 'relative', justifyContent: 'center' }}>
+                        <TextInput 
+                            style={styles.input}
+                            placeholder="••••••••" 
+                            placeholderTextColor="#9CA3AF"
+                            secureTextEntry={!showConfirmPassword}  
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            editable={!isLoading}
+                        />
+                        <TouchableOpacity 
+                            style={{ position: 'absolute', right: 15 }}
+                            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                            <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={22} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {errorMessage ? (
@@ -262,7 +281,7 @@ function Register() {
                 </TouchableOpacity>
 
                 <View style={styles.footerContainer}>
-                    <Text style={styles.footerText}>Have an account already?</Text>
+                    <Text style={styles.footerText}>Sudah punya akun?</Text>
                     <Link href={'/login'} asChild>
                         <TouchableOpacity disabled={isLoading}>
                             <Text style={styles.registerLink}>Log in</Text>
@@ -270,7 +289,28 @@ function Register() {
                     </Link>
                 </View>
             </View>
-        </View>
+        )
+    }
+
+    return (
+        <>
+            {Platform.OS !== "web"? (
+                <KeyboardAvoidingView 
+                    style={styles.container}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView 
+                        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} 
+                        keyboardShouldPersistTaps="handled">
+                        {renderForm()}
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            ): (
+                <View style={styles.container}>
+                    {renderForm()}
+                </View>
+            )}
+        </>
     );
 }
 

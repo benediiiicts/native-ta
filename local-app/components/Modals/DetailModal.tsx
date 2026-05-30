@@ -695,7 +695,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                     </View>
                 </View>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <Text style={{ fontSize: 15, color: "#4B5563" }}>Dilaporkan oleh: </Text>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => {
                         if (activeVersion.author?.id) {
@@ -707,6 +707,21 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                             {activeVersion.author?.username || 'Anonymous'}
                         </Text>
                     </TouchableOpacity>
+                </View>
+
+                <View
+                    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 15, color: "#4B5563" }}>
+                        {activeVersion?.createdAt 
+                            ? new Date(activeVersion.createdAt).toLocaleString('id-ID', {
+                                day: 'numeric', 
+                                month: 'long', 
+                                year: 'numeric', 
+                                hour: '2-digit', 
+                                minute: '2-digit'
+                              }) 
+                            : '-'}
+                    </Text>
                 </View>
 
                 <Text style={styles.descLabel}>Description:</Text>

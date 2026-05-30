@@ -373,7 +373,8 @@ function Home() {
                                         shadowRadius: 3.84,
                                         elevation: 5, 
                                         borderWidth: isActive ? 0 : 1,
-                                        borderColor: '#E5E7EB'
+                                        borderColor: '#E5E7EB',
+                                        ...(Platform.OS !== "web" && {marginTop: 20})
                                     }}
                                     onPress={() => setActiveFilter(category)}
                                 >

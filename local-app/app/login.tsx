@@ -4,7 +4,7 @@ import { Link, useRouter } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from "react";
-import { Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles/LoginRegister.styles";
 import { jwtDecode } from 'jwt-decode';
 
@@ -73,6 +73,7 @@ function Login() {
     let [errorMessage, setErrorMessage] = useState('');
     let [successMessage, setSuccessMessage] = useState('');
     let [isLoading, setIsLoading] = useState(false); 
+    const [showPassword, setShowPassword] = useState(false)
 
     const [request, response, promptAsync] = useAuthRequest(
         {
@@ -201,13 +202,13 @@ function Login() {
         }
     }
 
-    return (
-        <View style={styles.container}>
+    function renderForm(){
+        return(
             <View style={styles.formWrapper}>
                 <View style={styles.headerContainer}>
-                    <Text style={styles.headerText}>Welcome back</Text>
+                    <Text style={styles.headerText}>Welcome</Text>
                     <Text style={styles.subHeaderText}>
-                        Silakan masukkan email dan kata sandi Anda untuk melanjutkan.
+                        Silakan masukkan email dan kata sandi.
                     </Text>
                 </View>
                 
@@ -227,15 +228,23 @@ function Login() {
 
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Password</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        placeholder="••••••••" 
-                        placeholderTextColor="#9CA3AF"
-                        secureTextEntry={true} 
-                        value={password}
-                        onChangeText={setPassword}
-                        editable={!isLoading}
-                    />
+                    <View style={{ position: 'relative', justifyContent: 'center' }}>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="••••••••" 
+                            placeholderTextColor="#9CA3AF"
+                            secureTextEntry={!showPassword}
+                            value={password}
+                            onChangeText={setPassword}
+                            editable={!isLoading}
+                        />
+                        <TouchableOpacity 
+                            style={{ position: 'absolute', right: 15 }}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={22} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 
                 {errorMessage ? (
@@ -276,7 +285,7 @@ function Login() {
                 </TouchableOpacity>
                 
                 <View style={styles.footerContainer}>
-                    <Text style={styles.footerText}>Don't have an account?</Text>
+                    <Text style={styles.footerText}>Belum punya akun?</Text>
                     <Link href="/register" asChild>
                         <TouchableOpacity disabled={isLoading}>
                             <Text style={styles.registerLink}>Register</Text>
@@ -284,7 +293,28 @@ function Login() {
                     </Link>
                 </View>
             </View>
-        </View>
+        )
+    }
+
+    return (
+        <>
+            {Platform.OS !== "web" ? (
+                <KeyboardAvoidingView 
+                    style={styles.container}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <ScrollView 
+                        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center'}} 
+                        keyboardShouldPersistTaps="handled">
+                        {renderForm()}
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            ): (
+                <View style={styles.container}>
+                    {renderForm()}
+                </View>
+            )}
+        </>
     )
 }
 
