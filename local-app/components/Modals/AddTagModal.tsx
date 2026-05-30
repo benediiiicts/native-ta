@@ -462,7 +462,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                 </ScrollView>
 
                 <View style={[styles.labelRow, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-                    <Text style={styles.label}>Location</Text>
+                    <Text style={styles.label}>Lokasi</Text>
                     <TouchableOpacity onPress={handleUserCurrentLocation} style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <MaterialCommunityIcons name="crosshairs-gps" size={16} color="#3B82F6" />
                         <Text style={{ fontSize: 12, color: '#3B82F6', marginLeft: 4, fontWeight: 'bold' }}>Gunakan Lokasi Saat Ini</Text>
@@ -482,7 +482,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     </View>
                 </TouchableOpacity>
 
-                <Text style={styles.label}>Select tag type</Text>
+                <Text style={styles.label}>Pilih Jenis Tag</Text>
                 <TouchableOpacity 
                     style={styles.dropdownButton} 
                     onPress={() => setShowDropdown(!showDropdown)}
@@ -510,7 +510,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                     </View>
                 )}
 
-                <Text style={styles.label}>Description</Text>
+                <Text style={styles.label}>Deskripsi</Text>
                 <TextInput
                     style={[styles.inputWrapper, styles.textArea]}
                     multiline={true}
@@ -528,7 +528,7 @@ function AddTagModal({ visible, onClose, onPickLocation, selectedLocation, onTag
                         disabled={isLoading}
                     >
                         <Text style={styles.submitButtonText}>
-                            {isLoading ? "Memproses..." : "Post a tag"}
+                            {isLoading ? "Memproses..." : "Buat laporan jalan"}
                         </Text>
                     </TouchableOpacity>
                 </View>

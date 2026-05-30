@@ -300,7 +300,7 @@ function AdminStatistics(){
 
                                 {/* Bar Chart Kategori */}
                                 <View style={styles.breakdownBox}>
-                                    <Text style={styles.breakdownTitle}>Persebaran Kategori Kerusakan</Text>
+                                    <Text style={styles.breakdownTitle}>Persebaran Kategori Laporan Jalan</Text>
                                     <CustomBarChart data={statsData.infrastructureStats.byCategory} labelKey="issueType" color="#F59E0B" />
                                 </View>
 

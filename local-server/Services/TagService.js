@@ -295,7 +295,7 @@ async function createTagVersion(_tagRoadId, _userId, _status, _description, _ima
             }
 
             await tagRoads.update(
-                { updatedAt: new Date() }, 
+                roadUpdateData, 
                 { where: { id: _tagRoadId }, transaction: t }
             );
 

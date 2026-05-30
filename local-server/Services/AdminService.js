@@ -377,7 +377,7 @@ async function fetchStatistic(_bbox=null){
 
         const roadFilter = {
             isHidden: false,
-            createdAt: { [Op.gte]: ninetyDaysAgo }
+            updatedAt: { [Op.gte]: ninetyDaysAgo }
         };
 
         if (_bbox && _bbox.minLat && _bbox.maxLat && _bbox.minLon && _bbox.maxLon) {
@@ -398,11 +398,10 @@ async function fetchStatistic(_bbox=null){
         });
 
         // data berdasarkan kategori kerusakan/tag roads
-        const issueStatsRaw = await tagRoads.findAll({
-            attributes: ['issueType', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+        const issueStatsRaw = await tagRoads.count({
             where: roadFilter,
             group: ['issueType']
-        });
+        })
 
         // data berdasarkan status/tag version  
         const allActiveRoads = await tagRoads.findAll({
@@ -413,13 +412,16 @@ async function fetchStatistic(_bbox=null){
 
         let statusStatsRaw = [];
         if (activeVersionIds.length > 0) {
-            statusStatsRaw = await tagVersions.findAll({
-                attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
-                where: { 
-                    id: { [Op.in]: activeVersionIds }
-                },
+            statusStatsRaw = await tagVersions.count({
+                where: versionFilter,
+                include: [{
+                    model: tagRoads,
+                    as: 'road',
+                    where: roadFilter,
+                    attributes: []
+                }],
                 group: ['status']
-            });
+            })
         }
         
         return {

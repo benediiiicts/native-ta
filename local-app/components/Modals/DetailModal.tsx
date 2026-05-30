@@ -724,7 +724,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                     </Text>
                 </View>
 
-                <Text style={styles.descLabel}>Description:</Text>
+                <Text style={styles.descLabel}>Deskripsi:</Text>
                 <View style={styles.descBox}>
                     <Text
                         style={styles.descText}
@@ -785,7 +785,7 @@ function DetailModal({ visible, onClose, tagId, currentUserId, userRole, onTagUp
                     }}
                 >
                     <MaterialCommunityIcons name="history" size={24} color="#374151" />
-                    <Text style={styles.historyText}>See other versions...</Text>
+                    <Text style={styles.historyText}>Lihat versi lainnya...</Text>
                 </TouchableOpacity>
 
                 <View style={styles.divider} />

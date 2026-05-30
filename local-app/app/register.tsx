@@ -168,7 +168,7 @@ function Register() {
         return(
             <View style={styles.formWrapper}>
                 <View style={styles.headerContainer}>
-                    <Text style={styles.headerText}>Welcome</Text>
+                    <Text style={styles.headerText}>Register</Text>
                     <Text style={styles.subHeaderText}>
                         Masukkan data diri Anda untuk mendaftar
                     </Text>

@@ -206,7 +206,7 @@ function Login() {
         return(
             <View style={styles.formWrapper}>
                 <View style={styles.headerContainer}>
-                    <Text style={styles.headerText}>Welcome</Text>
+                    <Text style={styles.headerText}>Login</Text>
                     <Text style={styles.subHeaderText}>
                         Silakan masukkan email dan kata sandi.
                     </Text>

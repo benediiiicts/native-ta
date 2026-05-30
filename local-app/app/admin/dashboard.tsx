@@ -90,7 +90,7 @@ function AdminDashboard(){
                             <Ionicons name="people" size={32} color="#3B82F6" />
                         </View>
                         <View style={styles.menuTextContainer}>
-                            <Text style={styles.menuTitle}>Manage User</Text>
+                            <Text style={styles.menuTitle}>Kelola Pengguna</Text>
                             <Text style={styles.menuDesc}>Suspend, blokir, atau ubah role pengguna</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
@@ -101,7 +101,7 @@ function AdminDashboard(){
                             <MaterialCommunityIcons name="flag-triangle" size={32} color="#EF4444" />
                         </View>
                         <View style={styles.menuTextContainer}>
-                            <Text style={styles.menuTitle}>Manage Report</Text>
+                            <Text style={styles.menuTitle}>Kelola Laporan</Text>
                             <Text style={styles.menuDesc}>Tinjau laporan dari pengguna</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
