@@ -87,19 +87,27 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
         }
     };
 
-    function checkRadius(lat1: number, lon1: number, lat2: number, lon2: number){
-        const earthRadius = 6371000
-        const p1 = lat1 * Math.PI / 180
-        const p2 = lat2 * Math.PI / 180
-        const dp = (lat2 - lat1) * Math.PI / 180
-        const dl = (lon2 - lon1) * Math.PI / 180
+    // function checkRadius(lat1: number, lon1: number, lat2: number, lon2: number){
+    //     const earthRadius = 6371000
+    //     const p1 = lat1 * Math.PI / 180
+    //     const p2 = lat2 * Math.PI / 180
+    //     const dp = (lat2 - lat1) * Math.PI / 180
+    //     const dl = (lon2 - lon1) * Math.PI / 180
 
-        const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
-                Math.cos(p1) * Math.cos(p2) *
-                Math.sin(dl / 2) * Math.sin(dl / 2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    //     const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
+    //             Math.cos(p1) * Math.cos(p2) *
+    //             Math.sin(dl / 2) * Math.sin(dl / 2)
+    //     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
-        return earthRadius * c
+    //     return earthRadius * c
+    // }
+
+    function checkBoundingBox(lat1: number, lon1: number, lat2: number, lon2: number){
+        const offset = 0.00009; //~10 meter
+        return (
+            Math.abs(lat1 - lat2) <= offset &&
+            Math.abs(lon1 - lon2) <= offset
+        );
     }
     
     useEffect(()=>{
@@ -140,7 +148,7 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
         return true
     })
 
-    const maxDistance = 10 //meter
+    // const maxDistance = 10 //meter
     const groupedTags: any[][] = []
 
     visibleTags.forEach((tag) => {
@@ -149,14 +157,14 @@ function Map({ active, targetLocation=false, onRoadSelect, tags = [], onTagSelec
             const group = groupedTags[i]
             const centerTag = group[0]
 
-            const distance = checkRadius(
+            const isWithinBox = checkBoundingBox(
                 parseFloat(tag.latitude),
                 parseFloat(tag.longitude),
                 parseFloat(centerTag.latitude),
                 parseFloat(centerTag.longitude)
             )
 
-            if(distance <= maxDistance){
+            if(isWithinBox){
                 group.push(tag)
                 addedToGroup = true
                 break;

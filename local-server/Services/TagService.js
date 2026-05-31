@@ -7,36 +7,31 @@ import sequelize from "../database.js";
 import { saveImages } from "./MediaService.js";
 
 async function checkRoadRadius(_latitude, _longitude){
-    const earthRadius = 6371000
-    const maxDistance = 10 //10 meter
-
-    const distanceQuery = sequelize.literal(`
-        ( ${earthRadius} * acos( 
-            cos( radians(${_latitude}) ) 
-            * cos( radians(latitude) ) 
-            * cos( radians(longitude) - radians(${_longitude}) ) 
-            + sin( radians(${_latitude}) ) 
-            * sin( radians(latitude) ) 
-        ) )
-    `);
+    const offset = 0.00009; // ~10 meter
+    const minLat = parseFloat(_latitude) - offset;
+    const maxLat = parseFloat(_latitude) + offset;
+    const minLon = parseFloat(_longitude) - offset;
+    const maxLon = parseFloat(_longitude) + offset;
 
     try{
         let tagExist = await tagRoads.findOne({
-            where: sequelize.where(distanceQuery, {
-                [Op.lte]: maxDistance
-            })
+            where: {
+                latitude: { [Op.between]: [minLat, maxLat] },
+                longitude: { [Op.between]: [minLon, maxLon] }
+            }
         })
+            
         if (tagExist){
             return {
                 status: 409,
-                message: "A tag already exist within 5 meter radius",
+                message: "A tag already exist within 10 meter radius",
                 data: tagExist
             }
         }
         else{
             return{
                 status: 200,
-                message: "No tag found within 5 meter radius"
+                message: "No tag found within 10 meter radius"
             }
         }
     }
