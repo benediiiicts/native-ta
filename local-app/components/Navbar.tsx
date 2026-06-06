@@ -61,6 +61,7 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
+    const [noResultsFound, setNoResultsFound] = useState(false);
 
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -136,12 +137,14 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                 setSearchResults(data);
                 setIsDropdownVisible(true);
                 setIsMenuVisible(false);
+                setNoResultsFound(false);
                 Keyboard.dismiss();
                 if (onSearchResults) {
                     onSearchResults(data);
                 }
             } else {
                 setIsDropdownVisible(false);
+                setNoResultsFound(true);
                 console.log("Lokasi tidak ditemukan");
             }
         } catch(error) {
@@ -176,9 +179,10 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                         placeholderTextColor="#888"
                         value={searchLocation}
                         onChangeText={(text) => {
-                            setSearchLocation(text)
-                            if (isDropdownVisible) setIsDropdownVisible(false); 
+                            setSearchLocation(text);
+                            if (isDropdownVisible) setIsDropdownVisible(false);
                             if (isMenuVisible) setIsMenuVisible(false);
+                            if (noResultsFound) setNoResultsFound(false);
                         }}
                         onSubmitEditing={handleSearch}
                         returnKeyType="search"
@@ -203,6 +207,17 @@ function Navbar({ login, onLogout, onSearchResults, onPickLocationMode, currentU
                                 </TouchableOpacity>
                             )}
                         />
+                    </View>
+                )}
+                
+                {noResultsFound && (
+                    <View style={styles.dropdownContainer}>
+                        <View style={{ padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+                            <Text style={{ color: '#6B7280', fontSize: 14 }}>
+                                Lokasi "{searchLocation}" tidak ditemukan
+                            </Text>
+                        </View>
                     </View>
                 )}
             </View>
